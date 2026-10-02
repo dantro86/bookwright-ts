@@ -1,34 +1,37 @@
 # bookwright-ts — Roadmap
 
-Derived from `typescript-playwright-framework-spec.md`. Each phase ends in a runnable, documented,
+Derived from [`docs/typescript-playwright-framework-spec.md`](docs/typescript-playwright-framework-spec.md). Each phase ends in a runnable, documented,
 green milestone. Every slice follows the delivery protocol: problem/boundary → affected files →
 smallest coherent change → format + typecheck → focused framework tests → affected scenarios →
 ADR/README/CHANGELOG updated in the same slice.
 
 ## Phase 0: Kickoff
 
-- [ ] Inspect the repository, map product domains and lifecycle owners
-- [ ] Publish a concise implementation plan (`docs/plan.md` or README section)
-- [ ] Pin Node.js LTS (`.nvmrc`, `engines`), choose current stable versions of all tools
+- [x] Inspect the repository, map product domains and lifecycle owners
+- [x] Publish a concise implementation plan (`docs/plan.md` or README section)
+- [x] Pin Node.js LTS (`.nvmrc`, `engines`), choose current stable versions of all tools
 
 ## Phase 1: Foundation
 
-- [ ] `package.json`, strict `tsconfig.json`, ESLint (flat config) + Prettier, npm scripts
+- [x] `package.json`, strict `tsconfig.json`, ESLint (flat config) + Prettier, npm scripts
       (`typecheck`, `lint`, `format:check`, `test:*`)
-- [ ] `playwright.config.ts` with projects: `framework`, `api`, `ui`, `db`, `integration`
-- [ ] Typed config: Zod schema, precedence env/CLI > stand > defaults, `local` and `prod` stands,
+- [x] `playwright.config.ts` with projects `framework` and `api`; `ui`, `db` and `integration` are
+      added by the phases that bring their first tests (no empty projects)
+- [x] Typed config: Zod schema, precedence env/CLI > stand > defaults, `local` and `prod` stands,
       one aggregated validation report, values never printed
-- [ ] Centralized redaction (URLs, headers, bodies, errors, object inspection) + regression tests
-- [ ] Response-contract layer: `response`, `body<T>(call, status, schema)`, `expectStatus`
-- [ ] Errors: `ApiCallError`, `UnexpectedResponseError`, `RequiredEntityNotFoundError`,
+- [x] Centralized redaction (URLs, headers, bodies, errors, object inspection) + regression tests
+- [x] Response-contract layer: `response`, `body<T>(call, status, schema)`, `expectStatus`
+- [x] Errors: `ApiCallError`, `UnexpectedResponseError`, `RequiredEntityNotFoundError`,
       `BusinessOperationError` (with `cause`)
-- [ ] restful-booker domain clients: `health`, `auth`, `bookings` + Zod schemas
-- [ ] Deterministic `TestData` fixture (run seed + Playwright test identity, parallel-stable)
-- [ ] Allure Playwright: labels, owner, severity, tags (`@smoke @regression @api @ui @db
-      @integration`), run seed / test seed / replay command
-- [ ] First API tests: health warm-up via bounded polling, auth success/failure, booking CRUD,
+- [x] restful-booker domain clients: `health`, `auth`, `bookings` + Zod schemas
+- [x] Deterministic `TestData` fixture (run seed + Playwright test identity, parallel-stable)
+- [x] Allure Playwright: labels, owner, severity, tags (`@smoke @regression @api @ui @db
+@integration`), run seed / test seed / replay command
+- [x] Minimal local stand: digest-pinned restful-booker, dynamic port, signal-safe
+      `scripts/local-stand.sh` (extended in Phase 4)
+- [x] First API tests: health warm-up via bounded polling, auth success/failure, booking CRUD,
       required search with actionable not-found diagnostics
-- [ ] README skeleton, CHANGELOG (Keep a Changelog), first ADRs (fixture composition, domain
+- [x] README skeleton, CHANGELOG (Keep a Changelog), first ADRs (fixture composition, domain
       boundaries, deterministic data)
 
 ## Phase 2: Fixture runtime and lifecycle
