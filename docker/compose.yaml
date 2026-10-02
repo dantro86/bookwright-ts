@@ -21,7 +21,7 @@ services:
       start_period: 5s
 
   mysql:
-    image: mysql:8.4@sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242
+    image: mysql:9.6@sha256:c5df04bee1a42b74a5841c6409e669cf62126cd0416f00c1cea8ab933b9361b9
     environment:
       MYSQL_ROOT_PASSWORD: root-demo-not-a-secret
       MYSQL_DATABASE: bookwright
