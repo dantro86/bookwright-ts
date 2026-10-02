@@ -1,4 +1,6 @@
 import { execFile } from 'node:child_process';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 
@@ -47,7 +49,19 @@ export async function runScenarios(options: {
   );
   const { stdout } = await exec(
     process.execPath,
-    [CLI, 'test', '--config', CONFIG, '--workers', String(options.workers ?? 2), options.file],
+    [
+      CLI,
+      'test',
+      '--config',
+      CONFIG,
+      '--workers',
+      String(options.workers ?? 2),
+      // A private output directory per child run: parallel runs must not clean or overwrite
+      // each other's artifacts.
+      '--output',
+      await mkdtemp(join(tmpdir(), 'bookwright-scenarios-')),
+      options.file,
+    ],
     { env: { ...inherited, ...options.env }, maxBuffer: 32 * 1024 * 1024 },
   ).catch((error: unknown) => {
     // Exit code 1 only means some scenarios failed on purpose; the report is still on stdout.

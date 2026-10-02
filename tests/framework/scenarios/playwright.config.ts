@@ -1,5 +1,3 @@
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { defineConfig } from '@playwright/test';
 
 /**
@@ -9,7 +7,6 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: '.',
   testMatch: '*.scenario.ts',
-  outputDir: join(tmpdir(), 'bookwright-scenarios'),
   fullyParallel: true,
   retries: 0,
   reporter: [['./scenario-reporter.ts']],

@@ -70,7 +70,8 @@ run_interruptible compose up --detach --wait --wait-timeout 240 --quiet-pull --b
 
 ssh_port="$(published_port bastion 2222)"
 # Pin the host key generated inside this stand's bastion; the tunnel refuses any other key.
-ssh-keyscan -q -t ed25519 -p "${ssh_port}" 127.0.0.1 >"${secrets_dir}/known_hosts"
+# Banner comments go to stderr; `-q` is not portable (missing in Debian/Ubuntu OpenSSH).
+ssh-keyscan -t ed25519 -p "${ssh_port}" 127.0.0.1 >"${secrets_dir}/known_hosts" 2>/dev/null
 if [[ ! -s "${secrets_dir}/known_hosts" ]]; then
   echo "local-stand: could not read the bastion host key" >&2
   exit 1
