@@ -5,17 +5,17 @@ An educational, production-grade test automation framework built with **TypeScri
 fixtures for composition and lifecycle, `APIRequestContext` for HTTP, web-first assertions for UI.
 It does not port Java/Guice designs.
 
-> Status: **Phase 2 (fixture runtime and lifecycle)** complete. See [`TODO.md`](TODO.md) for the roadmap and
+> Status: **Phase 3 (UI)** complete. See [`TODO.md`](TODO.md) for the roadmap and
 > [`docs/plan.md`](docs/plan.md) for the implementation plan.
 
 ## Targets
 
-| Track        | Target                                                                         | Status  |
-| ------------ | ------------------------------------------------------------------------------ | ------- |
-| External API | [restful-booker](https://restful-booker.herokuapp.com), Dockerized for `local` | ✅      |
-| External UI  | [Sauce Demo](https://www.saucedemo.com)                                        | Phase 3 |
-| Database     | MySQL reachable only through an SSH bastion                                    | Phase 4 |
-| Integrated   | Local TypeScript booking app (Fastify), in-memory now, MySQL in Phase 4        | API ✅  |
+| Track        | Target                                                                         | Status      |
+| ------------ | ------------------------------------------------------------------------------ | ----------- |
+| External API | [restful-booker](https://restful-booker.herokuapp.com), Dockerized for `local` | ✅          |
+| External UI  | [Sauce Demo](https://www.saucedemo.com)                                        | ✅          |
+| Database     | MySQL reachable only through an SSH bastion                                    | Phase 4     |
+| Integrated   | Local TypeScript booking app (Fastify), in-memory now, MySQL in Phase 4        | API + UI ✅ |
 
 ## Requirements
 
@@ -29,7 +29,7 @@ nvm use
 npm ci
 npm run test:framework                                   # framework self-tests, no services needed
 npm run stand:local -- npx playwright test --project=api # API tests on an isolated Docker stand
-BW_STAND=prod npm run test:api -- --grep-invert @local-stand # restful-booker against the public site
+BW_STAND=prod npx playwright test --project=api --project=ui --grep-invert @local-stand # public targets only
 ```
 
 ## Commands
@@ -41,6 +41,7 @@ BW_STAND=prod npm run test:api -- --grep-invert @local-stand # restful-booker ag
 | `npm run config:check`                  | Validate configuration for the selected stand                    |
 | `npm run test:framework`                | Framework self-tests                                             |
 | `npm run test:api`                      | API scenarios (needs a configured stand)                         |
+| `npm run test:ui`                       | UI scenarios (Sauce Demo + local protected pages)                |
 | `npm run stand:local -- <command>`      | Start an isolated local stand, run `<command>`, always tear down |
 | `npm run report`                        | Build and open the Allure report from `allure-results/`          |
 
@@ -49,16 +50,18 @@ BW_STAND=prod npm run test:api -- --grep-invert @local-stand # restful-booker ag
 Settings resolve with precedence **environment > stand > defaults** and are validated with Zod
 before any HTTP, browser, SSH or database resource opens. All variables use the `BW_` prefix:
 
-| Variable                                                  | Default                                                    | Notes                                                          |
-| --------------------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------- |
-| `BW_STAND`                                                | `local`                                                    | `local` or `prod`                                              |
-| `BW_RUN_SEED`                                             | generated per run                                          | Set it to replay deterministic data                            |
-| `BW_TEARDOWN_FAIL_ON_ERROR`                               | `true`                                                     | Cleanup failures fail an otherwise passing test                |
-| `BW_RESTFUL_BOOKER_BASE_URL`                              | `prod`: public URL; `local`: exported by the launcher      |                                                                |
-| `BW_RESTFUL_BOOKER_USERNAME` / `_PASSWORD`                | `admin` / `password123`                                    | Public restful-booker demo credentials, not production secrets |
-| `BW_RESTFUL_BOOKER_READINESS_TIMEOUT_MS` / `_INTERVAL_MS` | `60000` / `1000`                                           | Health warm-up polling bounds                                  |
-| `BW_LOCAL_APP_BASE_URL`                                   | exported by the launcher                                   | Local booking app exists only on the `local` stand             |
-| `BW_LOCAL_APP_EXISTING_USER_EMAIL` / `_PASSWORD`          | `demo.user@bookwright.test` / `demo-password-not-a-secret` | Seeded demo account, not a production secret                   |
+| Variable                                                                 | Default                                                    | Notes                                                          |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------- | -------------------------------------------------------------- |
+| `BW_STAND`                                                               | `local`                                                    | `local` or `prod`                                              |
+| `BW_RUN_SEED`                                                            | generated per run                                          | Set it to replay deterministic data                            |
+| `BW_TEARDOWN_FAIL_ON_ERROR`                                              | `true`                                                     | Cleanup failures fail an otherwise passing test                |
+| `BW_RESTFUL_BOOKER_BASE_URL`                                             | `prod`: public URL; `local`: exported by the launcher      |                                                                |
+| `BW_RESTFUL_BOOKER_USERNAME` / `_PASSWORD`                               | `admin` / `password123`                                    | Public restful-booker demo credentials, not production secrets |
+| `BW_RESTFUL_BOOKER_READINESS_TIMEOUT_MS` / `_INTERVAL_MS`                | `60000` / `1000`                                           | Health warm-up polling bounds                                  |
+| `BW_SAUCE_DEMO_BASE_URL`                                                 | `https://www.saucedemo.com`                                | Same public site on every stand                                |
+| `BW_SAUCE_DEMO_STANDARD_USERNAME` / `_LOCKED_OUT_USERNAME` / `_PASSWORD` | `standard_user` / `locked_out_user` / `secret_sauce`       | Published Sauce Demo demo accounts                             |
+| `BW_LOCAL_APP_BASE_URL`                                                  | exported by the launcher                                   | Local booking app exists only on the `local` stand             |
+| `BW_LOCAL_APP_EXISTING_USER_EMAIL` / `_PASSWORD`                         | `demo.user@bookwright.test` / `demo-password-not-a-secret` | Seeded demo account, not a production secret                   |
 
 A validation failure lists every missing or invalid key with its variable name. Values are never
 printed.
@@ -76,11 +79,15 @@ framework/
   reporting/                Allure labels and replay metadata
   teardown/                 LIFO cleanup queue and verdict policy
   test-data/                deterministic TestData + seeded PRNG
+  ui/diagnostics/           independent failure artifacts per page
+  ui/saucedemo/             config, catalog + {login,inventory,checkout} page objects
+  ui/local/                 {auth,bookings} page objects of the local app
   waiting/                  bounded polling
   test.ts                   the project-level `test` (mergeTests of fixture modules)
 local-app/                  Fastify booking app: users, sessions, bookings
 tests/framework/            self-tests (+ scenarios/ for child Playwright runs, support/ mock server)
 tests/api/{restful-booker,local}/
+tests/ui/{saucedemo,local}/
 docker/compose.yaml         local stand
 scripts/                    local-stand launcher, config check
 docs/adr/                   architecture decision records
@@ -94,6 +101,7 @@ Key decisions are recorded in [`docs/adr`](docs/adr):
 4. [Cleanup ownership](docs/adr/0004-cleanup-ownership.md)
 5. [Retry policy](docs/adr/0005-retry-policy.md)
 6. [Safe reporting](docs/adr/0006-safe-reporting.md)
+7. [API-authenticated UI](docs/adr/0007-api-authenticated-ui.md)
 
 ### Fixtures
 
@@ -130,7 +138,9 @@ test(
 
 Allure results go to `allure-results/`. Each test carries epic, feature, owner and severity labels
 (`test.use({ reportLabels })`), tags (`@smoke @regression @api ...`), the run seed, the test seed and
-an exact replay command. Request/response exchanges are attached after redaction.
+an exact replay command. Request/response exchanges are attached after redaction. A failed UI test
+gets a screenshot, the HTML, URL and viewport, console errors, page errors, failed requests and a
+sanitized trace for every page it used.
 
 ## Framework self-tests
 

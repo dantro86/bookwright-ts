@@ -57,16 +57,16 @@ ADR/README/CHANGELOG updated in the same slice.
 
 ## Phase 3: UI
 
-- [ ] Sauce Demo page/domain objects: `login`, `inventory`, `checkout` (roles/labels/test IDs,
+- [x] Sauce Demo page/domain objects: `login`, `inventory`, `checkout` (roles/labels/test IDs,
       scoped locators, web-first assertions)
-- [ ] Scenarios: login success, invalid and locked-out, full sorting assertion, scoped product
+- [x] Scenarios: login success, invalid and locked-out, full sorting assertion, scoped product
       selection, cart → checkout → completion with full-state assertions
-- [ ] `authenticatedPage`: fresh context with API-issued cookie/storage state
-- [ ] Local protected page scenarios: API session login, missing / invalid / expired session
-- [ ] Independent failure artifacts: screenshot, HTML, trace, URL + viewport, console errors,
+- [x] `authenticatedPage`: fresh context with API-issued cookie/storage state
+- [x] Local protected page scenarios: API session login, missing / invalid / expired session
+- [x] Independent failure artifacts: screenshot, HTML, trace, URL + viewport, console errors,
       page errors, failed requests (sanitized; traces discarded on success)
-- [ ] Self-tests: independent artifact capture, browser context isolation under concurrency
-- [ ] ADR: API-authenticated UI
+- [x] Self-tests: independent artifact capture, browser context isolation under concurrency
+- [x] ADR: API-authenticated UI
 
 ## Phase 4: Infrastructure and database
 

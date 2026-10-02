@@ -58,3 +58,12 @@ test.describe('deterministic test data', () => {
     expect(booking.bookingdates.checkin < booking.bookingdates.checkout).toBe(true);
   });
 });
+
+test('sample picks distinct items deterministically in original order', () => {
+  const items = ['a', 'b', 'c', 'd', 'e', 'f'];
+  const first = TestData.forTest('seed-1', identity('sample')).sample(items, 3);
+  expect(TestData.forTest('seed-1', identity('sample')).sample(items, 3)).toEqual(first);
+  expect(new Set(first).size).toBe(3);
+  expect([...first].sort()).toEqual(first);
+  expect(() => TestData.forTest('seed-1', identity('sample')).sample(items, 7)).toThrow(RangeError);
+});

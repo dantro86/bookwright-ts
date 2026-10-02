@@ -22,10 +22,15 @@ contain enough context to act on and never contain credentials, tokens or sessio
 - The contract layer attaches a redacted request/response exchange to every API call step. Errors
   carry operation, method, redacted URL, expected/actual status and a redacted bounded body.
 - Configuration errors name keys and variables, never values (Zod `reportInput: false`).
+- Playwright titles input steps with the typed text (`Fill "…"`). Secret input goes through
+  `fillSecret`, which wraps it in a step marked `[secret input]`. The project's Allure reporter
+  (`framework/reporting/safe-allure-reporter.ts`) masks every input value below such a step and
+  scrubs credential shapes from all step titles. An architecture rule allows `reveal()` in UI code
+  only inside `fillSecret`.
 
 ## Consequences
 
 - Redaction is regression-tested (`tests/framework/redaction.spec.ts`,
   `api-contract.spec.ts`).
-- Playwright traces are not yet sanitized. Phase 3 must handle them before traces are kept for UI
-  failures.
+- Playwright traces are sanitized by `framework/diagnostics/trace-sanitizer.ts` before they are
+  attached (see ADR 0007). Built-in tracing is disabled.

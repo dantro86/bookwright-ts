@@ -15,7 +15,11 @@ export interface ScenarioResult {
   readonly workerIndex: number;
   readonly errors: readonly { readonly message?: string }[];
   readonly steps: readonly ScenarioStep[];
-  readonly attachments: readonly { readonly name: string; readonly body?: string }[];
+  readonly attachments: readonly {
+    readonly name: string;
+    readonly body?: string;
+    readonly path?: string;
+  }[];
 }
 
 export interface ScenarioTest {

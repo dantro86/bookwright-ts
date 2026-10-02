@@ -83,6 +83,22 @@ export class TestData {
     return this.#random.pick(items);
   }
 
+  /** `count` distinct items in their original relative order. */
+  sample<T>(items: readonly T[], count: number): readonly T[] {
+    if (!Number.isInteger(count) || count < 0 || count > items.length) {
+      throw new RangeError(`cannot sample ${count} of ${items.length} items`);
+    }
+    const indexes = items.map((_, index) => index);
+    for (let i = indexes.length - 1; i > 0; i--) {
+      const j = this.#random.int(0, i);
+      [indexes[i], indexes[j]] = [indexes[j] as number, indexes[i] as number];
+    }
+    return indexes
+      .slice(0, count)
+      .sort((a, b) => a - b)
+      .map((index) => items[index] as T);
+  }
+
   /** A future date range of `minDays..maxDays` days, formatted as `YYYY-MM-DD`. */
   dateRange(minDays: number, maxDays: number): ISODateRange {
     const startOffset = this.#random.int(0, 365);

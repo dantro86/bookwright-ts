@@ -80,8 +80,15 @@ export function redactHeaders(headers: Readonly<Record<string, string>>): Record
   );
 }
 
-/** Returns a deep copy with sensitive keys masked, secrets hidden and strings scrubbed. */
-export function redactValue(value: unknown, depth = 0): unknown {
+/**
+ * Returns a deep copy with sensitive keys masked, secrets hidden and strings scrubbed. Nesting
+ * deeper than `maxDepth` is replaced by a marker.
+ */
+export function redactValue(value: unknown, maxDepth = MAX_DEPTH): unknown {
+  return redactAt(value, 0, maxDepth);
+}
+
+function redactAt(value: unknown, depth: number, maxDepth: number): unknown {
   if (value instanceof Secret) {
     return REDACTED;
   }
@@ -91,20 +98,33 @@ export function redactValue(value: unknown, depth = 0): unknown {
   if (value === null || typeof value !== 'object') {
     return value;
   }
-  if (depth >= MAX_DEPTH) {
+  if (depth >= maxDepth) {
     return '[max depth]';
   }
   if (value instanceof Error) {
     return { name: value.name, message: redactText(value.message) };
   }
   if (Array.isArray(value)) {
-    return value.map((item: unknown) => redactValue(item, depth + 1));
+    return value.map((item: unknown) => redactAt(item, depth + 1, maxDepth));
+  }
+  if (isSensitiveNameValuePair(value)) {
+    return { ...value, value: REDACTED };
   }
   return Object.fromEntries(
     Object.entries(value).map(([key, item]) => [
       key,
-      isSensitiveKey(key) ? REDACTED : redactValue(item, depth + 1),
+      isSensitiveKey(key) ? REDACTED : redactAt(item, depth + 1, maxDepth),
     ]),
+  );
+}
+
+/** HAR- and trace-style header or cookie entries: `{ name: 'Cookie', value: '...' }`. */
+function isSensitiveNameValuePair(value: object): value is { name: string; value: unknown } {
+  return (
+    'name' in value &&
+    'value' in value &&
+    typeof value.name === 'string' &&
+    isSensitiveKey(value.name)
   );
 }
 

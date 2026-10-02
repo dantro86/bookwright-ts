@@ -91,6 +91,16 @@ test.describe('architecture rules', () => {
     ).toEqual([]);
   });
 
+  test('UI code reveals secrets only through fillSecret', () => {
+    const ui = framework.filter((file) => file.path.startsWith('framework/ui/'));
+    expect(
+      offenders(
+        ui,
+        (file) => file.text.includes('.reveal()') && file.path !== 'framework/ui/secret-input.ts',
+      ),
+    ).toEqual([]);
+  });
+
   test('no implicit retries anywhere', () => {
     expect(readFileSync('playwright.config.ts', 'utf8')).toMatch(/retries: 0,/);
     const retrying = /maxRetries:\s*[1-9]|retries:\s*[1-9]|\.retry\(/;

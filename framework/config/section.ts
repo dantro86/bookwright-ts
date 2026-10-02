@@ -33,6 +33,8 @@ export interface ConfigSection<Shape extends z.ZodRawShape> {
   readonly shape: Shape;
   readonly defaults?: RawValues<Shape>;
   readonly stands?: { readonly [Stand in StandName]?: RawValues<Shape> };
+  /** Stands that provide this target at all; omitted means every stand. */
+  readonly availableOn?: readonly StandName[];
 }
 
 export function defineSection<Shape extends z.ZodRawShape>(
@@ -65,6 +67,13 @@ export function envName(
   return ['BW', section.envPrefix, snake].filter(Boolean).join('_');
 }
 
+export function isAvailable(
+  section: Pick<ConfigSection<z.ZodRawShape>, 'availableOn'>,
+  stand: StandName,
+): boolean {
+  return section.availableOn === undefined || section.availableOn.includes(stand);
+}
+
 export function resolveStand(env: Environment): StandName {
   const raw = env['BW_STAND'] ?? 'local';
   const parsed = z.enum(STANDS).safeParse(raw);
@@ -85,6 +94,11 @@ export function loadSection<Shape extends z.ZodRawShape>(
   env: Environment = process.env,
 ): z.output<z.ZodObject<Shape>> {
   const stand = resolveStand(env);
+  if (!isAvailable(section, stand)) {
+    throw new ConfigValidationError(section.name, stand, [
+      `target is not available on this stand (available on: ${section.availableOn?.join(', ') ?? ''})`,
+    ]);
+  }
   const raw: Record<string, RawValue | undefined> = {};
   for (const key of Object.keys(section.shape)) {
     raw[key] =

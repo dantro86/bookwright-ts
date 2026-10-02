@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { SESSION_COOKIE, bookingsPage, loginPage } from './pages.ts';
 import { hashPassword, verifyPassword } from './passwords.ts';
 import type { MemoryStore, SessionRecord, UserRecord } from './store.ts';
 
@@ -59,9 +60,22 @@ function sendError(reply: FastifyReply, status: number, error: string, message: 
   return reply.code(status).send({ error, message });
 }
 
+function cookieValue(header: string | undefined, name: string): string | undefined {
+  for (const part of (header ?? '').split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === name) return decodeURIComponent(rest.join('='));
+  }
+  return undefined;
+}
+
+function sessionCookie(token: string, maxAgeSeconds: number): string {
+  return `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
+}
+
 /**
- * Small booking application used as the integrated system under test. Authentication uses opaque
- * session tokens sent as `Authorization: Bearer <token>`.
+ * Small booking application used as the integrated system under test. The JSON API authenticates
+ * with `Authorization: Bearer <token>` and never sets cookies; the HTML pages read the same token
+ * from the `bw_session` cookie, set either by the login form or injected by tests.
  */
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const { store } = options;
@@ -79,14 +93,15 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   function authenticate(request: FastifyRequest): Authenticated | SessionError {
     const header = request.headers.authorization;
-    if (header === undefined) return 'session_missing';
-    const token = /^Bearer (\S+)$/.exec(header)?.[1];
+    const token =
+      header === undefined
+        ? cookieValue(request.headers.cookie, SESSION_COOKIE)
+        : /^Bearer (\S+)$/.exec(header)?.[1];
+    if (header === undefined && token === undefined) return 'session_missing';
     const session = token === undefined ? undefined : store.findSession(token);
     if (session === undefined) return 'session_invalid';
-    if (session.expiresAt <= Date.now()) {
-      store.deleteSession(session.token);
-      return 'session_expired';
-    }
+    // Expired sessions stay recorded so every later request keeps reporting "expired".
+    if (session.expiresAt <= Date.now()) return 'session_expired';
     const user = store.findUser(session.userId);
     return user === undefined ? 'session_invalid' : { user, session };
   }
@@ -111,7 +126,54 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     return sendError(reply, 500, 'internal_error', 'unexpected server error');
   });
 
+  app.addContentTypeParser(
+    'application/x-www-form-urlencoded',
+    { parseAs: 'string' },
+    (_request, body, done) => {
+      done(null, Object.fromEntries(new URLSearchParams(body as string)));
+    },
+  );
+
   app.get('/health', () => ({ status: 'ok' }));
+
+  app.get('/login', (request, reply) => {
+    const { reason } = request.query as { reason?: string };
+    return reply.type('text/html').send(loginPage(reason));
+  });
+
+  app.post('/login', async (request, reply) => {
+    const form = z.object({ email: z.string(), password: z.string() }).parse(request.body);
+    const user = store.findUserByEmail(form.email);
+    if (user === undefined || !(await verifyPassword(form.password, user.passwordHash))) {
+      return reply.redirect('/login?reason=invalid_credentials', 303);
+    }
+    const ttlSeconds = options.defaultSessionTtlSeconds;
+    const session = store.createSession(user.id, Date.now() + ttlSeconds * 1_000);
+    return reply
+      .header('set-cookie', sessionCookie(session.token, ttlSeconds))
+      .redirect('/bookings', 303);
+  });
+
+  app.post('/logout', (request, reply) => {
+    const auth = authenticate(request);
+    if (typeof auth !== 'string') store.deleteSession(auth.session.token);
+    return reply
+      .header('set-cookie', sessionCookie('', 0))
+      .redirect('/login?reason=signed_out', 303);
+  });
+
+  app.get('/bookings', (request, reply) => {
+    const auth = authenticate(request);
+    if (typeof auth === 'string') {
+      return reply.redirect(`/login?reason=${auth}`, 303);
+    }
+    const html = bookingsPage(
+      auth.user,
+      store.listBookings(auth.user.id),
+      (roomId) => store.findRoom(roomId)?.name,
+    );
+    return reply.type('text/html').send(html);
+  });
 
   app.post('/api/users', async (request, reply) => {
     const body = Registration.parse(request.body);

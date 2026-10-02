@@ -38,3 +38,24 @@ All notable changes to this project are documented here. The format follows
 - Fixture runtime self-tests in child Playwright runs (cleanup order and policy, scope isolation,
   scheduling-independent data), in-process user fixture tests and architecture rule tests.
 - ADRs 0004–0006: cleanup ownership, retry policy, safe reporting.
+- `ui` project with Sauce Demo page objects (login, inventory, checkout) and scenarios: login
+  success, wrong password, locked-out user, all four sort orders against the complete catalog,
+  scoped product selection, and cart to checkout to completion with full totals.
+- Local app HTML pages (`/login`, `/bookings`, `/logout`) with cookie sessions, and scenarios for
+  API-authenticated pages in both user modes, sign-out, and missing, invalid and expired sessions.
+- `authenticatedPage` / `signedInLocalUi` (API-issued session cookie in a fresh context) and
+  `signedInSauceDemo` (injected session cookie) fixtures.
+- `PageDiagnostics`: independent screenshot, HTML, location, console errors, page errors, failed
+  requests and sanitized trace on failure, nothing on success.
+- Trace sanitizer, redaction of name/value header and cookie pairs, `TestData.sample`.
+- `fillSecret` and a safe Allure reporter that masks secret input values in step titles.
+- Configuration sections can declare the stands they exist on; `config:check` skips the others.
+- Self-tests for artifact capture independence and sanitization, and for browser context
+  isolation under concurrency.
+- ADR 0007: API-authenticated UI.
+
+### Changed
+
+- Built-in Playwright tracing and screenshots are off. Traces are captured per page and sanitized,
+  because built-in traces also recorded raw API request headers.
+- The local app keeps expired sessions, so later requests keep reporting `session_expired`.

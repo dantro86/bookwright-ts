@@ -8,6 +8,7 @@ import { defineSection, loadSection, setting, type Environment } from '../../con
 export const localAppSection = defineSection({
   name: 'local-app',
   envPrefix: 'LOCAL_APP',
+  availableOn: ['local'],
   shape: {
     baseUrl: setting.url(),
     existingUserEmail: setting.string(),

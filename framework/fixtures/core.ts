@@ -7,6 +7,7 @@ import {
 } from '../reporting/report-labels.ts';
 import { Teardown, teardownVerdict } from '../teardown/teardown.ts';
 import { TestData } from '../test-data/test-data.ts';
+import { PageDiagnostics } from '../ui/diagnostics/page-diagnostics.ts';
 
 export interface CoreOptions {
   /** Allure domain labels for the enclosing `describe`; `undefined` for unlabelled framework tests. */
@@ -60,6 +61,14 @@ export const test = base.extend<CoreOptions & CoreTestFixtures, CoreWorkerFixtur
     const summary = verdict.failures.map((failure) => failure.message).join('\n');
     testInfo.annotations.push({ type: 'cleanup-failure', description: summary });
     await testInfo.attach('cleanup failures', { body: summary, contentType: 'text/plain' });
+  },
+
+  // Playwright still owns the browser and the fresh per-test context; this override only adds
+  // failure diagnostics around the default page.
+  page: async ({ page }, use, testInfo) => {
+    const diagnostics = await PageDiagnostics.watch(page, 'page');
+    await use(page);
+    await diagnostics.finish(testInfo);
   },
 
   reportLabelsApplied: [

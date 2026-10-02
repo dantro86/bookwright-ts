@@ -1,4 +1,4 @@
-import type { APIRequestContext } from '@playwright/test';
+import type { APIRequestContext, Page } from '@playwright/test';
 import { test as core } from './core.ts';
 import { LocalAuthClient } from '../api/local/auth/auth-client.ts';
 import { LocalBookingSteps } from '../api/local/bookings/booking-steps.ts';
@@ -8,11 +8,20 @@ import { userRegistration } from '../api/local/users/user-data.ts';
 import type { TestUser, UserMode } from '../api/local/users/user-schemas.ts';
 import { UserSteps } from '../api/local/users/user-steps.ts';
 import { LocalUsersClient } from '../api/local/users/users-client.ts';
+import { LocalLoginPage } from '../ui/local/auth/login-page.ts';
+import { LocalBookingsPage } from '../ui/local/bookings/bookings-page.ts';
+import { LOCAL_SESSION_COOKIE } from '../ui/local/local-ui-texts.ts';
+import { PageDiagnostics } from '../ui/diagnostics/page-diagnostics.ts';
 
 export interface LocalApi {
   readonly auth: LocalAuthClient;
   readonly users: LocalUsersClient;
   readonly bookings: LocalBookingsClient;
+}
+
+export interface LocalUi {
+  readonly login: LocalLoginPage;
+  readonly bookings: LocalBookingsPage;
 }
 
 export interface LocalOptions {
@@ -35,6 +44,12 @@ export interface LocalTestFixtures {
   readonly existingUser: TestUser;
   /** The user selected by the `userMode` option. */
   readonly testUser: TestUser;
+  /** Local page objects on the anonymous default page. */
+  readonly localUi: LocalUi;
+  /** A fresh browser context carrying `testUser`'s API-issued session cookie. */
+  readonly authenticatedPage: Page;
+  /** Local page objects on `authenticatedPage`. */
+  readonly signedInLocalUi: LocalUi;
 }
 
 export const test = core.extend<LocalOptions & LocalTestFixtures, LocalWorkerFixtures>({
@@ -100,5 +115,37 @@ export const test = core.extend<LocalOptions & LocalTestFixtures, LocalWorkerFix
             password: localAppConfig.existingUserPassword,
           });
     await use(user);
+  },
+
+  localUi: async ({ page, localAppConfig }, use) => {
+    await use({
+      login: new LocalLoginPage(page, localAppConfig.baseUrl),
+      bookings: new LocalBookingsPage(page, localAppConfig.baseUrl),
+    });
+  },
+
+  authenticatedPage: async ({ browser, testUser, localAppConfig }, use, testInfo) => {
+    const context = await browser.newContext();
+    await context.addCookies([
+      {
+        name: LOCAL_SESSION_COOKIE,
+        value: testUser.session.token.reveal(),
+        url: localAppConfig.baseUrl,
+        httpOnly: true,
+        sameSite: 'Lax',
+      },
+    ]);
+    const page = await context.newPage();
+    const diagnostics = await PageDiagnostics.watch(page, 'authenticated page');
+    await use(page);
+    await diagnostics.finish(testInfo);
+    await context.close();
+  },
+
+  signedInLocalUi: async ({ authenticatedPage, localAppConfig }, use) => {
+    await use({
+      login: new LocalLoginPage(authenticatedPage, localAppConfig.baseUrl),
+      bookings: new LocalBookingsPage(authenticatedPage, localAppConfig.baseUrl),
+    });
   },
 });

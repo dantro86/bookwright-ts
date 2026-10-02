@@ -11,6 +11,7 @@ import {
   truncate,
 } from '../../framework/diagnostics/redaction.ts';
 import { Secret } from '../../framework/diagnostics/secret.ts';
+import { redactStepTitle } from '../../framework/reporting/safe-allure-reporter.ts';
 
 test.describe('redaction', () => {
   test('secrets never leak through string, JSON or inspection', () => {
@@ -103,4 +104,32 @@ test.describe('redaction', () => {
     expect((safe.cause as Error).message).toBe(`inner ${REDACTED}`);
     expect(safe.stack).not.toContain('password=abc');
   });
+});
+
+test('header and cookie name/value pairs are masked by name', () => {
+  expect(
+    redactValue({
+      headers: [
+        { name: 'Authorization', value: 'Bearer abc' },
+        { name: 'Accept', value: 'json' },
+      ],
+      cookies: [{ name: 'bw_session', value: 'zzz', domain: 'x' }],
+    }),
+  ).toEqual({
+    headers: [
+      { name: 'Authorization', value: REDACTED },
+      { name: 'Accept', value: 'json' },
+    ],
+    cookies: REDACTED,
+  });
+  expect(redactValue([{ name: 'bw_session', value: 'zzz', domain: 'x' }])).toEqual([
+    { name: 'bw_session', value: REDACTED, domain: 'x' },
+  ]);
+});
+
+test('input step titles hide values typed inside a secret input step', () => {
+  expect(redactStepTitle('Fill "secret_sauce"', true)).toBe(`Fill "${REDACTED}"`);
+  expect(redactStepTitle('Type "pw-123"', true)).toBe(`Type "${REDACTED}"`);
+  expect(redactStepTitle('Fill "Ada"', false)).toBe('Fill "Ada"');
+  expect(redactStepTitle('GET /booking?token=abc', false)).toBe(`GET /booking?token=${REDACTED}`);
 });

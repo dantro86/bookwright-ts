@@ -13,7 +13,7 @@ export default defineConfig({
   reporter: [
     ['list'],
     [
-      'allure-playwright',
+      './framework/reporting/safe-allure-reporter.ts',
       {
         resultsDir: 'allure-results',
         environmentInfo: {
@@ -25,10 +25,15 @@ export default defineConfig({
     ],
   ],
   use: {
-    trace: 'retain-on-failure',
+    // Built-in tracing and screenshots are off: PageDiagnostics captures them per page and
+    // sanitizes traces before attaching. Built-in traces would also record API request headers.
+    trace: 'off',
+    screenshot: 'off',
+    testIdAttribute: 'data-test',
   },
   projects: [
     { name: 'framework', testDir: 'tests/framework' },
     { name: 'api', testDir: 'tests/api' },
+    { name: 'ui', testDir: 'tests/ui' },
   ],
 });

@@ -17,6 +17,7 @@ export default class ScenarioReporter implements Reporter {
         attachments: result.attachments.map((attachment) => ({
           name: attachment.name,
           body: attachment.body?.toString('base64'),
+          path: attachment.path,
         })),
       },
     });

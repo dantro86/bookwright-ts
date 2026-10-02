@@ -13,12 +13,13 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "config:check": "node scripts/check-config.ts",
     "test": "playwright test",
     "test:framework": "playwright test --project=framework",
     "test:api": "playwright test --project=api",
+    "test:ui": "playwright test --project=ui",
     "stand:local": "bash scripts/local-stand.sh",
-    "report": "allure generate allure-results --output allure-report && allure open allure-report",
-    "config:check": "node scripts/check-config.ts"
+    "report": "allure generate allure-results --output allure-report && allure open allure-report"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -29,6 +30,7 @@
     "allure-playwright": "3.13.0",
     "eslint": "10.11.0",
     "eslint-config-prettier": "10.1.8",
+    "fflate": "0.8.3",
     "globals": "17.13.0",
     "prettier": "3.9.9",
     "typescript": "6.0.3",
