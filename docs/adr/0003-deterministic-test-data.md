@@ -25,6 +25,6 @@ which values a test receives.
 ## Consequences
 
 - Replaying with the same seed reproduces the exact payloads. Against a shared external service,
-  reruns can collide with data left behind by the earlier run. LIFO cleanup (Phase 2) addresses
+  reruns can collide with data left behind by the earlier run. LIFO cleanup ([ADR 0004](0004-cleanup-ownership.md)) addresses
   this.
 - Renaming a test changes its `testId` and therefore its data. This is accepted.

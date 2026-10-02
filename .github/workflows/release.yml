@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  FORCE_COLOR: '1'
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+jobs:
+  release:
+    name: Verify and publish ${{ github.ref_name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Tag equals package version
+        run: node scripts/release/verify-tag.ts "${GITHUB_REF_NAME}"
+      - name: Release notes from CHANGELOG
+        run: node scripts/release/release-notes.ts "${GITHUB_REF_NAME#v}" > release-notes.md
+      - run: npm ci
+      - run: npm run lockfile:check
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npx playwright install --with-deps chromium
+      - name: Framework self-tests with coverage gate
+        run: npm run test:coverage
+      - name: Complete deterministic local suite
+        run: npm run stand:local -- npx playwright test
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-test-results
+          path: |
+            test-results/
+            allure-results/
+          if-no-files-found: ignore
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" --verify-tag --title "${GITHUB_REF_NAME}" --notes-file release-notes.md

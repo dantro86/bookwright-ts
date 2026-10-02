@@ -1,12 +1,29 @@
 # bookwright-ts
 
+[![CI](https://github.com/dantro86/bookwright-ts/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/dantro86/bookwright-ts/actions/workflows/ci.yml)
+[![Allure report](https://img.shields.io/badge/report-Allure-orange)](https://dantro86.github.io/bookwright-ts/)
+[![Node.js 24 LTS](https://img.shields.io/badge/node-24%20LTS-339933)](.nvmrc)
+[![Playwright](https://img.shields.io/badge/Playwright-1.63-2EAD33)](package.json)
+
 An educational, production-grade test automation framework built with **TypeScript** and
 **Playwright Test**. It covers API, UI and database testing with Playwright-native patterns:
 fixtures for composition and lifecycle, `APIRequestContext` for HTTP, web-first assertions for UI.
 It does not port Java/Guice designs.
 
-> Status: **Phase 4 (infrastructure and database)** complete. See [`TODO.md`](TODO.md) for the
-> roadmap and [`docs/plan.md`](docs/plan.md) for the implementation plan.
+> All five roadmap phases are complete. See [`TODO.md`](TODO.md) for the roadmap and acceptance
+> checklist, and [`docs/plan.md`](docs/plan.md) for the implementation plan.
+
+## Why this exists
+
+The project teaches how to build a maintainable API + UI + database test system in TypeScript and
+shows senior SDET practices in working code:
+
+- Playwright fixtures as the only composition root, with no IoC container and no registry;
+- domain-split clients, steps and page objects instead of god objects;
+- deterministic, replayable test data and LIFO cleanup that never hides the real failure;
+- safe diagnostics: secrets never reach logs, errors, attachments, step titles or traces;
+- a real infrastructure path: MySQL only behind a hardened SSH bastion;
+- CI with independent gates, coverage, security scanning and a published Allure report.
 
 ## Targets
 
@@ -48,8 +65,17 @@ BW_STAND=prod npx playwright test --project=api --project=ui --grep-invert @loca
 | `npm run stand:concurrency`                                     | Two complete stands in parallel, proving isolation               |
 | `npm run report`                                                | Build and open the Allure report from `allure-results/`          |
 
-Tests of targets that exist only on the local stand are tagged `@local-stand`. See
-[`docs/infrastructure.md`](docs/infrastructure.md) for stands, network layout and profiles.
+Tests of targets that exist only on the local stand are tagged `@local-stand`.
+
+## Documentation
+
+| Guide                                             | Contents                                                                |
+| ------------------------------------------------- | ----------------------------------------------------------------------- |
+| [Infrastructure profiles](docs/infrastructure.md) | Stands, launcher, network layout, database settings, non-local profiles |
+| [CI guide](docs/ci.md)                            | Jobs, coverage gate, release workflow, Pages and branch protection      |
+| [Self-test matrix](docs/self-test-matrix.md)      | Every framework contract and the test that proves it                    |
+| [Troubleshooting](docs/troubleshooting.md)        | Configuration, stand, SSH/DB and test diagnostics                       |
+| [ADRs](docs/adr)                                  | Architecture decisions and trade-offs                                   |
 
 ## Configuration
 
@@ -112,6 +138,7 @@ Key decisions are recorded in [`docs/adr`](docs/adr):
 7. [API-authenticated UI](docs/adr/0007-api-authenticated-ui.md)
 8. [SSH security](docs/adr/0008-ssh-security.md)
 9. [Local integrated system](docs/adr/0009-local-integrated-system.md)
+10. [Quality gates](docs/adr/0010-quality-gates.md)
 
 ### Fixtures
 
@@ -164,24 +191,9 @@ it used.
 
 ## Framework self-tests
 
-`npm run test:framework` needs no Docker or network. It covers:
-
-| Area                                                                                          | Spec                                         |
-| --------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| Config precedence, validation, secret settings                                                | `config.spec.ts`                             |
-| SSH and database security rules, `known_hosts` pinning                                        | `db-config.spec.ts`                          |
-| Deterministic data, replay, parallel independence                                             | `test-data.spec.ts`, `fixture-scope.spec.ts` |
-| Fixture scopes and isolation under parallel workers                                           | `fixture-scope.spec.ts`                      |
-| LIFO cleanup, `failOnError`, primary failure preserved                                        | `teardown.spec.ts`                           |
-| `NEW` / `EXISTING` users and their cleanup (in-process local app)                             | `user-fixtures.spec.ts`                      |
-| Response contracts, error causes, no implicit retries, polling                                | `api-contract.spec.ts`, `polling.spec.ts`    |
-| Redaction of text, URLs, headers, bodies, objects, errors, attachments, step titles           | `redaction.spec.ts`, `api-contract.spec.ts`  |
-| Independent, sanitized UI failure artifacts (incl. trace)                                     | `ui-artifacts.spec.ts`                       |
-| Browser context isolation under concurrency; page/context closure order                       | `ui-isolation.spec.ts`                       |
-| SSH tunnel: dynamic ports, host and client key checks, shutdown order (in-process SSH server) | `ssh-tunnel.spec.ts`                         |
-| Lazy database open, pool → channels → client shutdown, failure handling                       | `database-lifecycle.spec.ts`                 |
-| Architecture rules                                                                            | `architecture.spec.ts`                       |
-
-Fixture-runtime behavior is checked in a child Playwright run (`tests/framework/scenarios`), so
-scenarios that fail on purpose never fail the outer suite. Stand isolation across complete Docker
-stands is checked by `npm run stand:concurrency`.
+`npm run test:framework` needs no Docker or network. It verifies configuration, deterministic data,
+fixture scopes, LIFO cleanup, user modes, response contracts, retries and polling, redaction, UI
+artifacts, context isolation, the SSH tunnel, the database lifecycle, repositories, architecture
+rules and release tooling. The full mapping from contract to test is in
+[`docs/self-test-matrix.md`](docs/self-test-matrix.md). `npm run test:coverage` adds the coverage
+gate; `npm run stand:concurrency` proves isolation between complete Docker stands.

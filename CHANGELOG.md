@@ -69,6 +69,15 @@ All notable changes to this project are documented here. The format follows
 - Self-tests: SSH tunnel against an in-process SSH server, database lifecycle and shutdown order,
   configuration security rules, page/context closure order.
 - ADRs 0008 (SSH security) and 0009 (local integrated system); infrastructure guide.
+- GitHub Actions CI with independent jobs (static quality, self-tests with a c8 coverage gate,
+  api/ui/db/integration scenarios on isolated stands, concurrent stand isolation, CodeQL,
+  dependency review) and one aggregate quality gate; raw results uploaded even on failure.
+- Merged Allure 3 report with history, published to GitHub Pages from `main`.
+- Tag-driven release workflow: tag equals package version, full local suite, linted changelog
+  section, GitHub Release.
+- Dependabot for npm, GitHub Actions, Dockerfiles and Compose; lockfile integrity check.
+- Self-tests for release tooling and repository required/optional lookups.
+- CI guide, troubleshooting guide, self-test matrix and ADR 0010 (quality gates).
 
 ### Changed
 

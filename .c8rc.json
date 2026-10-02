@@ -1,0 +1,31 @@
+{
+  "temp-directory": "coverage/.tmp",
+  "report-dir": "coverage",
+  "reporter": ["text-summary", "lcov", "json-summary"],
+  "all": true,
+  "src": ["framework"],
+  "include": [
+    "framework/api/http/**",
+    "framework/config/**",
+    "framework/db/config.ts",
+    "framework/db/database.ts",
+    "framework/db/errors.ts",
+    "framework/db/known-hosts.ts",
+    "framework/db/shutdown.ts",
+    "framework/db/ssh-tunnel.ts",
+    "framework/diagnostics/**",
+    "framework/fixtures/core.ts",
+    "framework/reporting/**",
+    "framework/teardown/**",
+    "framework/test-data/**",
+    "framework/ui/diagnostics/**",
+    "framework/ui/secret-input.ts",
+    "framework/waiting/**"
+  ],
+  "exclude-after-remap": true,
+  "check-coverage": true,
+  "lines": 90,
+  "statements": 90,
+  "functions": 90,
+  "branches": 85
+}

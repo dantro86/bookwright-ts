@@ -87,31 +87,31 @@ ADR/README/CHANGELOG updated in the same slice.
 
 ## Phase 5: Quality system and polish
 
-- [ ] GitHub Actions independent jobs: static quality, self-tests + coverage threshold, API, UI,
+- [x] GitHub Actions independent jobs: static quality, self-tests + coverage threshold, API, UI,
       DB-over-SSH, integrated, CodeQL + dependency review, aggregate required status
-- [ ] Upload raw results and failure artifacts even on failure; pin actions and images
-- [ ] Dependabot, lockfile integrity check
-- [ ] Merged, history-enabled Allure report published to GitHub Pages
-- [ ] Tag-driven release workflow: tag == package version, full local suite, changelog section
+- [x] Upload raw results and failure artifacts even on failure; pin actions and images
+- [x] Dependabot, lockfile integrity check
+- [x] Merged, history-enabled Allure report published to GitHub Pages
+- [x] Tag-driven release workflow: tag == package version, full local suite, changelog section
       extraction, GitHub Release, reject `Added Added ...`-style bullets
-- [ ] Docs: README (architecture, targets, commands, badges), self-test matrix, CI guide +
+- [x] Docs: README (architecture, targets, commands, badges), self-test matrix, CI guide +
       branch protection, troubleshooting guide, remaining ADRs
 
 ## Acceptance checklist (spec §12)
 
-- [ ] `npm run typecheck`, lint, format check, self-tests, coverage gate pass
-- [ ] Full local Docker suite passes from one documented command
-- [ ] API, UI, DB-over-SSH, integrated scenarios run independently in CI
-- [ ] Full parallel execution shares no test-owned state
-- [ ] New domain fixture requires no central registry change
-- [ ] All created entities register LIFO cleanup
-- [ ] No product step invents scenario data
-- [ ] No arbitrary sleeps or global retries
-- [ ] No real secret in Git or diagnostics
-- [ ] Required lookups never silently return `undefined`
-- [ ] UI tests use native locators and web-first assertions
-- [ ] SSH/DB path uses dynamic ports and deterministic shutdown
-- [ ] Framework contracts have isolated regression tests
-- [ ] Architecture decisions and trade-offs documented
-- [ ] No obsolete classes, dead layers, TODO implementations, superseded references
-- [ ] `git diff --check` passes, working tree clean after verification
+- [x] `npm run typecheck`, lint, format check, self-tests, coverage gate pass
+- [x] Full local Docker suite passes from one documented command
+- [x] API, UI, DB-over-SSH, integrated scenarios run independently in CI
+- [x] Full parallel execution shares no test-owned state
+- [x] New domain fixture requires no central registry change
+- [x] All created entities register LIFO cleanup
+- [x] No product step invents scenario data
+- [x] No arbitrary sleeps or global retries
+- [x] No real secret in Git or diagnostics
+- [x] Required lookups never silently return `undefined`
+- [x] UI tests use native locators and web-first assertions
+- [x] SSH/DB path uses dynamic ports and deterministic shutdown
+- [x] Framework contracts have isolated regression tests
+- [x] Architecture decisions and trade-offs documented
+- [x] No obsolete classes, dead layers, TODO implementations, superseded references
+- [x] `git diff --check` passes, working tree clean after verification

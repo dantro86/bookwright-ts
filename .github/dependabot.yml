@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      playwright-and-allure:
+        patterns: ['@playwright/*', 'allure*']
+      lint-and-format:
+        patterns: ['eslint*', '@eslint/*', 'typescript-eslint', 'prettier', 'globals']
+    ignore:
+      # typescript-eslint supports TypeScript < 6.1; bump together with it, not alone.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      # Node.js LTS line is pinned in .nvmrc and engines.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directories: ['/local-app', '/docker/bastion']
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker-compose
+    directory: /docker
+    schedule:
+      interval: weekly

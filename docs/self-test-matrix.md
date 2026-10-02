@@ -1,0 +1,33 @@
+# Framework self-test matrix
+
+Self-tests (`tests/framework`, `npm run test:framework`) are deterministic and need no Docker or
+network. They use local fakes: an HTTP mock server, an in-process local app, an in-process SSH
+server, and child Playwright runs for fixture-runtime behavior.
+
+| Contract (spec §6)                                                 | How it is proven                                                                                                                                           | Spec                                                                       |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Configuration precedence and validation                            | env > stand > defaults; one aggregated report; values never printed                                                                                        | `config.spec.ts`                                                           |
+| SSH/DB security rules                                              | key needs key + `known_hosts`; password only on loopback; prod has no DB                                                                                   | `db-config.spec.ts`                                                        |
+| Deterministic data replay and parallel independence                | same seed + identity ⇒ same values; 1 vs 4 workers ⇒ same data                                                                                             | `test-data.spec.ts`, `fixture-scope.spec.ts`                               |
+| Fixture scope and dependency isolation                             | worker fixtures shared per worker, test fixtures unique per test (child run, 3 workers)                                                                    | `fixture-scope.spec.ts`                                                    |
+| NEW / EXISTING users                                               | registration, sessions, same `TestUser` contract, cleanup verified after teardown                                                                          | `user-fixtures.spec.ts`                                                    |
+| LIFO cleanup and `failOnError`                                     | step order, dirty cleanup fails or is reported by policy (child runs)                                                                                      | `teardown.spec.ts`                                                         |
+| Primary failure preserved                                          | failing test keeps its own error; cleanup failure only annotated                                                                                           | `teardown.spec.ts`                                                         |
+| Response helpers and cause chains                                  | status, malformed JSON, schema, disconnect, timeout, `BusinessOperationError.cause`                                                                        | `api-contract.spec.ts`                                                     |
+| No implicit HTTP retries                                           | mock server counts exactly one request on 503 and on disconnect                                                                                            | `api-contract.spec.ts`                                                     |
+| Explicit polling and terminal states                               | value returned directly; thrown errors never retried; bounded timeout                                                                                      | `polling.spec.ts`, `api-contract.spec.ts`                                  |
+| Secret redaction                                                   | text, URLs, headers, bodies, objects, errors, attachments, step titles, traces                                                                             | `redaction.spec.ts`, `api-contract.spec.ts`, `ui-artifacts.spec.ts`        |
+| Required / optional lookups                                        | `RequiredEntityNotFoundError` fields; optional lookups return `undefined`                                                                                  | `repositories.spec.ts`; against MySQL in `tests/db/seed.spec.ts`           |
+| Independent UI artifact capture                                    | failing capturer does not block others; closed page still yields the rest                                                                                  | `ui-artifacts.spec.ts`                                                     |
+| Browser context isolation under concurrency                        | parallel authenticated contexts carry only their own session                                                                                               | `ui-isolation.spec.ts`                                                     |
+| Closure order: page/context, DB pool, SSH tunnel, worker resources | page before context; pool → channels → client; lazy open; failures continue                                                                                | `ui-isolation.spec.ts`, `database-lifecycle.spec.ts`, `ssh-tunnel.spec.ts` |
+| SSH tunnel                                                         | dynamic distinct ports, forwarding, host-key and client-key rejection                                                                                      | `ssh-tunnel.spec.ts`                                                       |
+| Architecture rules                                                 | no catch-all classes, clients per domain, no scenario literals in steps, no fixture catalog, no sleeps, no retries, secrets revealed only via `fillSecret` | `architecture.spec.ts`                                                     |
+| Release tooling                                                    | tag = version, section extraction, heading-repeat lint                                                                                                     | `release.spec.ts`                                                          |
+
+Stand isolation across complete Docker stands (ports, data, users, cleanup) is proven by
+`npm run stand:concurrency` and the CI job **Concurrent stand isolation**.
+
+Several of these tests were mutation-checked during development: the test fails when the
+protection it guards is removed. This covers trace sanitization, host-key verification and user
+cleanup.
