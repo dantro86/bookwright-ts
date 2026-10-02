@@ -25,7 +25,15 @@ updates:
     directories: ['/local-app', '/docker/bastion']
     schedule:
       interval: weekly
+    ignore:
+      # Stay on the Node.js LTS line pinned in .nvmrc; move majors deliberately.
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
   - package-ecosystem: docker-compose
     directory: /docker
     schedule:
       interval: weekly
+    ignore:
+      # MySQL 8.4 is the LTS line; 9.x are innovation releases.
+      - dependency-name: mysql
+        update-types: ['version-update:semver-major']
