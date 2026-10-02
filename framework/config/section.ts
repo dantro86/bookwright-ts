@@ -20,6 +20,8 @@ export const setting = {
       .string()
       .min(1)
       .transform((value) => Secret.of(value)),
+  oneOf: <const Values extends readonly [string, ...string[]]>(values: Values) => z.enum(values),
+  optional: <Schema extends z.ZodType>(schema: Schema) => schema.optional(),
 };
 
 /**
@@ -35,6 +37,8 @@ export interface ConfigSection<Shape extends z.ZodRawShape> {
   readonly stands?: { readonly [Stand in StandName]?: RawValues<Shape> };
   /** Stands that provide this target at all; omitted means every stand. */
   readonly availableOn?: readonly StandName[];
+  /** Cross-field rules; each returned string is one problem in the aggregated report. */
+  readonly check?: (config: z.output<z.ZodObject<Shape>>) => readonly string[];
 }
 
 export function defineSection<Shape extends z.ZodRawShape>(
@@ -107,6 +111,10 @@ export function loadSection<Shape extends z.ZodRawShape>(
 
   const result = z.object(section.shape).safeParse(raw, { reportInput: false });
   if (result.success) {
+    const problems = section.check?.(result.data) ?? [];
+    if (problems.length > 0) {
+      throw new ConfigValidationError(section.name, stand, problems);
+    }
     return result.data;
   }
   const problems = result.error.issues.map((issue) => {

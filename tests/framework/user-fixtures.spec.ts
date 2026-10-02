@@ -17,11 +17,10 @@ test.describe('NEW and EXISTING user fixtures', () => {
     expect(newUser.credentials.email).toMatch(/^user-[0-9a-f]{8}@bookwright\.test$/);
     expect(newUser.profile.email).toBe(newUser.credentials.email);
     expect(newUser.session.userId).toBe(newUser.profile.id);
-    expect(inProcessApp.store.findUserByEmail(newUser.credentials.email)?.id).toBe(
+    expect((await inProcessApp.store.findUserByEmail(newUser.credentials.email))?.id).toBe(
       newUser.profile.id,
     );
     expect(teardown.pending()).toEqual([`delete user ${newUser.credentials.email}`]);
-    await Promise.resolve();
   });
 
   test('existingUser authenticates configured credentials and schedules logout only', ({

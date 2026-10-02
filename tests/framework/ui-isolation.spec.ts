@@ -40,3 +40,18 @@ test.describe('browser context isolation under concurrency', () => {
     await localUi.login.expectShownFor('session_missing');
   });
 });
+
+test.describe('page and context closure', () => {
+  const closures: string[] = [];
+
+  // Runs after the test's fixtures were torn down.
+  test.afterAll(() => {
+    expect(closures).toEqual(['authenticated page', 'authenticated context']);
+  });
+
+  test('authenticatedPage closes its page before its context', ({ authenticatedPage }) => {
+    authenticatedPage.once('close', () => closures.push('authenticated page'));
+    authenticatedPage.context().once('close', () => closures.push('authenticated context'));
+    expect(authenticatedPage.isClosed()).toBe(false);
+  });
+});

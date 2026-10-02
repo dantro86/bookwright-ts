@@ -5,65 +5,73 @@ An educational, production-grade test automation framework built with **TypeScri
 fixtures for composition and lifecycle, `APIRequestContext` for HTTP, web-first assertions for UI.
 It does not port Java/Guice designs.
 
-> Status: **Phase 3 (UI)** complete. See [`TODO.md`](TODO.md) for the roadmap and
-> [`docs/plan.md`](docs/plan.md) for the implementation plan.
+> Status: **Phase 4 (infrastructure and database)** complete. See [`TODO.md`](TODO.md) for the
+> roadmap and [`docs/plan.md`](docs/plan.md) for the implementation plan.
 
 ## Targets
 
-| Track        | Target                                                                         | Status      |
-| ------------ | ------------------------------------------------------------------------------ | ----------- |
-| External API | [restful-booker](https://restful-booker.herokuapp.com), Dockerized for `local` | ✅          |
-| External UI  | [Sauce Demo](https://www.saucedemo.com)                                        | ✅          |
-| Database     | MySQL reachable only through an SSH bastion                                    | Phase 4     |
-| Integrated   | Local TypeScript booking app (Fastify), in-memory now, MySQL in Phase 4        | API + UI ✅ |
+| Track        | Target                                                                         | Status |
+| ------------ | ------------------------------------------------------------------------------ | ------ |
+| External API | [restful-booker](https://restful-booker.herokuapp.com), Dockerized for `local` | ✅     |
+| External UI  | [Sauce Demo](https://www.saucedemo.com)                                        | ✅     |
+| Database     | MySQL reachable only through a hardened SSH bastion                            | ✅     |
+| Integrated   | Local TypeScript booking app (Fastify) on the same MySQL                       | ✅     |
 
 ## Requirements
 
 - Node.js 24 LTS (`nvm use` reads `.nvmrc`)
 - Docker with Compose v2 for the `local` stand
+- `ssh-keygen` and `ssh-keyscan` (OpenSSH) for the launcher
+- Playwright Chromium: `npx playwright install chromium`
 
 ## Quick start
 
 ```bash
 nvm use
 npm ci
-npm run test:framework                                   # framework self-tests, no services needed
-npm run stand:local -- npx playwright test --project=api # API tests on an isolated Docker stand
-BW_STAND=prod npx playwright test --project=api --project=ui --grep-invert @local-stand # public targets only
+npx playwright install chromium
+npm run test:framework                          # framework self-tests, no services needed
+npm run stand:local -- npx playwright test      # the complete suite on an isolated Docker stand
+BW_STAND=prod npx playwright test --project=api --project=ui --grep-invert @local-stand
 ```
 
 ## Commands
 
-| Command                                 | Purpose                                                          |
-| --------------------------------------- | ---------------------------------------------------------------- |
-| `npm run typecheck`                     | Strict TypeScript check                                          |
-| `npm run lint` / `npm run format:check` | ESLint and Prettier                                              |
-| `npm run config:check`                  | Validate configuration for the selected stand                    |
-| `npm run test:framework`                | Framework self-tests                                             |
-| `npm run test:api`                      | API scenarios (needs a configured stand)                         |
-| `npm run test:ui`                       | UI scenarios (Sauce Demo + local protected pages)                |
-| `npm run stand:local -- <command>`      | Start an isolated local stand, run `<command>`, always tear down |
-| `npm run report`                        | Build and open the Allure report from `allure-results/`          |
+| Command                                                         | Purpose                                                          |
+| --------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `npm run typecheck`                                             | Strict TypeScript check                                          |
+| `npm run lint` / `npm run format:check`                         | ESLint and Prettier                                              |
+| `npm run config:check`                                          | Validate configuration for the selected stand                    |
+| `npm run test:framework`                                        | Framework self-tests                                             |
+| `npm run test:api` / `test:ui` / `test:db` / `test:integration` | One project (needs a configured stand)                           |
+| `npm run stand:local -- <command>`                              | Start an isolated local stand, run `<command>`, always tear down |
+| `npm run stand:concurrency`                                     | Two complete stands in parallel, proving isolation               |
+| `npm run report`                                                | Build and open the Allure report from `allure-results/`          |
+
+Tests of targets that exist only on the local stand are tagged `@local-stand`. See
+[`docs/infrastructure.md`](docs/infrastructure.md) for stands, network layout and profiles.
 
 ## Configuration
 
 Settings resolve with precedence **environment > stand > defaults** and are validated with Zod
 before any HTTP, browser, SSH or database resource opens. All variables use the `BW_` prefix:
 
-| Variable                                                                 | Default                                                    | Notes                                                          |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------- | -------------------------------------------------------------- |
-| `BW_STAND`                                                               | `local`                                                    | `local` or `prod`                                              |
-| `BW_RUN_SEED`                                                            | generated per run                                          | Set it to replay deterministic data                            |
-| `BW_TEARDOWN_FAIL_ON_ERROR`                                              | `true`                                                     | Cleanup failures fail an otherwise passing test                |
-| `BW_RESTFUL_BOOKER_BASE_URL`                                             | `prod`: public URL; `local`: exported by the launcher      |                                                                |
-| `BW_RESTFUL_BOOKER_USERNAME` / `_PASSWORD`                               | `admin` / `password123`                                    | Public restful-booker demo credentials, not production secrets |
-| `BW_RESTFUL_BOOKER_READINESS_TIMEOUT_MS` / `_INTERVAL_MS`                | `60000` / `1000`                                           | Health warm-up polling bounds                                  |
-| `BW_SAUCE_DEMO_BASE_URL`                                                 | `https://www.saucedemo.com`                                | Same public site on every stand                                |
-| `BW_SAUCE_DEMO_STANDARD_USERNAME` / `_LOCKED_OUT_USERNAME` / `_PASSWORD` | `standard_user` / `locked_out_user` / `secret_sauce`       | Published Sauce Demo demo accounts                             |
-| `BW_LOCAL_APP_BASE_URL`                                                  | exported by the launcher                                   | Local booking app exists only on the `local` stand             |
-| `BW_LOCAL_APP_EXISTING_USER_EMAIL` / `_PASSWORD`                         | `demo.user@bookwright.test` / `demo-password-not-a-secret` | Seeded demo account, not a production secret                   |
+| Variable                                                                 | Default                                                    | Notes                                           |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------- | ----------------------------------------------- |
+| `BW_STAND`                                                               | `local`                                                    | `local` or `prod`                               |
+| `BW_RUN_SEED`                                                            | generated per run                                          | Set it to replay deterministic data             |
+| `BW_TEARDOWN_FAIL_ON_ERROR`                                              | `true`                                                     | Cleanup failures fail an otherwise passing test |
+| `BW_RESTFUL_BOOKER_BASE_URL`                                             | `prod`: public URL; `local`: exported by the launcher      |                                                 |
+| `BW_RESTFUL_BOOKER_USERNAME` / `_PASSWORD`                               | `admin` / `password123`                                    | Public restful-booker demo credentials          |
+| `BW_RESTFUL_BOOKER_READINESS_TIMEOUT_MS` / `_INTERVAL_MS`                | `60000` / `1000`                                           | Health warm-up polling bounds                   |
+| `BW_SAUCE_DEMO_BASE_URL`                                                 | `https://www.saucedemo.com`                                | Same public site on every stand                 |
+| `BW_SAUCE_DEMO_STANDARD_USERNAME` / `_LOCKED_OUT_USERNAME` / `_PASSWORD` | `standard_user` / `locked_out_user` / `secret_sauce`       | Published Sauce Demo demo accounts              |
+| `BW_LOCAL_APP_BASE_URL`                                                  | exported by the launcher                                   | Local stand only                                |
+| `BW_LOCAL_APP_EXISTING_USER_EMAIL` / `_PASSWORD`                         | `demo.user@bookwright.test` / `demo-password-not-a-secret` | Seeded demo account                             |
+| `BW_DB_*`                                                                | see [`docs/infrastructure.md`](docs/infrastructure.md)     | SSH bastion and MySQL, local stand only         |
 
-A validation failure lists every missing or invalid key with its variable name. Values are never
+All credentials in this repository are public or local demo values, never production secrets. A
+validation failure lists every missing or invalid key with its variable name. Values are never
 printed.
 
 ## Architecture
@@ -74,9 +82,10 @@ framework/
   api/restful-booker/       config section + {health,auth,bookings} domains
   api/local/                config section + {auth,users,bookings} domains of the local app
   config/                   section loader, stands, core settings
-  diagnostics/              Secret type and centralized redaction
-  fixtures/                 core + per-target fixture modules
-  reporting/                Allure labels and replay metadata
+  db/                       config, SSH tunnel, lazy Database, shutdown + {bookings,rooms} repositories
+  diagnostics/              Secret type, centralized redaction, trace sanitizer
+  fixtures/                 core + one fixture module per target
+  reporting/                Allure labels, replay metadata, safe Allure reporter
   teardown/                 LIFO cleanup queue and verdict policy
   test-data/                deterministic TestData + seeded PRNG
   ui/diagnostics/           independent failure artifacts per page
@@ -84,13 +93,12 @@ framework/
   ui/local/                 {auth,bookings} page objects of the local app
   waiting/                  bounded polling
   test.ts                   the project-level `test` (mergeTests of fixture modules)
-local-app/                  Fastify booking app: users, sessions, bookings
-tests/framework/            self-tests (+ scenarios/ for child Playwright runs, support/ mock server)
-tests/api/{restful-booker,local}/
-tests/ui/{saucedemo,local}/
-docker/compose.yaml         local stand
-scripts/                    local-stand launcher, config check
-docs/adr/                   architecture decision records
+local-app/                  Fastify booking app: users, sessions, rooms, bookings (MySQL or memory)
+docker/                     compose.yaml, MySQL schema + seed, SSH bastion image
+tests/framework/            self-tests (+ scenarios/ for child Playwright runs, support/)
+tests/{api,ui,db,integration}/
+scripts/                    local-stand launcher, concurrency check, config check
+docs/                       plan, infrastructure guide, ADRs
 ```
 
 Key decisions are recorded in [`docs/adr`](docs/adr):
@@ -102,34 +110,45 @@ Key decisions are recorded in [`docs/adr`](docs/adr):
 5. [Retry policy](docs/adr/0005-retry-policy.md)
 6. [Safe reporting](docs/adr/0006-safe-reporting.md)
 7. [API-authenticated UI](docs/adr/0007-api-authenticated-ui.md)
+8. [SSH security](docs/adr/0008-ssh-security.md)
+9. [Local integrated system](docs/adr/0009-local-integrated-system.md)
 
 ### Fixtures
 
-| Fixture                           | Scope  | Provides                                         |
-| --------------------------------- | ------ | ------------------------------------------------ |
-| `testData`                        | test   | Deterministic data from run seed + test identity |
-| `teardown`                        | test   | LIFO cleanup queue (`register(name, action)`)    |
-| `restfulBooker`                   | test   | `health`, `auth`, `bookings` clients             |
-| `authSession`                     | test   | Authenticated restful-booker session             |
-| `bookingSteps`, `existingBooking` | test   | Booking creation with cleanup; a ready booking   |
-| `localApi`                        | test   | Local app `auth`, `users`, `bookings` clients    |
-| `newUser` / `existingUser`        | test   | `TestUser` in `NEW` / `EXISTING` mode            |
-| `testUser` + `userMode` option    | test   | User selected by `test.use({ userMode })`        |
-| `*Config`, `*Request`             | worker | Validated config sections and request contexts   |
+| Fixture                                | Scope  | Provides                                                       |
+| -------------------------------------- | ------ | -------------------------------------------------------------- |
+| `testData`                             | test   | Deterministic data from run seed + test identity               |
+| `teardown`                             | test   | LIFO cleanup queue (`register(name, action)`)                  |
+| `restfulBooker`                        | test   | `health`, `auth`, `bookings` clients                           |
+| `authSession`                          | test   | Authenticated restful-booker session                           |
+| `bookingSteps`, `existingBooking`      | test   | Booking creation with cleanup; a ready booking                 |
+| `localApi`                             | test   | Local app `auth`, `users`, `bookings` clients                  |
+| `newUser` / `existingUser`             | test   | `TestUser` in `NEW` / `EXISTING` mode                          |
+| `testUser` + `userMode` option         | test   | User selected by `test.use({ userMode })`                      |
+| `page` (overridden)                    | test   | Playwright's fresh page plus failure diagnostics               |
+| `sauceDemo` / `signedInSauceDemo`      | test   | Sauce Demo page objects; anonymous / session injected          |
+| `localUi`                              | test   | Local page objects on the anonymous `page`                     |
+| `authenticatedPage`, `signedInLocalUi` | test   | Fresh context with `testUser`'s API-issued session             |
+| `database`                             | worker | Lazy MySQL access through the SSH bastion: `bookings`, `rooms` |
+| `dbBookingSteps`                       | test   | Booking rows written over SSH with cleanup                     |
+| `*Config`, `*Request`                  | worker | Validated config sections and request contexts                 |
 
 ### Writing a test
 
 ```ts
-import { bookingRequest } from '../../../framework/api/restful-booker/bookings/booking-data.ts';
-import { expect, test } from '../../../framework/test.ts';
+import { localBookingRequest } from '../../framework/api/local/bookings/booking-data.ts';
+import { expect, test } from '../../framework/test.ts';
 
 test(
-  'created booking can be read back',
-  { tag: ['@api'] },
-  async ({ restfulBooker, bookingSteps, testData }) => {
-    const request = bookingRequest(testData);
-    const created = await bookingSteps.create(request); // registers LIFO cleanup
-    await expect(restfulBooker.bookings.requireById(created.bookingid)).resolves.toEqual(request);
+  'created booking is persisted',
+  { tag: ['@integration'] },
+  async ({ localApi, database, newUser, testData }) => {
+    const booking = await localApi.bookings.create(newUser.session, localBookingRequest(testData));
+    await expect
+      .poll(() => database.bookings.findById(booking.id), {
+        message: `booking ${booking.id} to be persisted`,
+      })
+      .toEqual(booking);
   },
 );
 ```
@@ -137,25 +156,32 @@ test(
 ## Reporting
 
 Allure results go to `allure-results/`. Each test carries epic, feature, owner and severity labels
-(`test.use({ reportLabels })`), tags (`@smoke @regression @api ...`), the run seed, the test seed and
-an exact replay command. Request/response exchanges are attached after redaction. A failed UI test
-gets a screenshot, the HTML, URL and viewport, console errors, page errors, failed requests and a
-sanitized trace for every page it used.
+(`test.use({ reportLabels })`), tags (`@smoke @regression @api @ui @db @integration`), the run seed,
+the test seed and an exact replay command. Request/response exchanges are attached after
+redaction. Secret input never appears in step titles. A failed UI test gets a screenshot, the HTML,
+URL and viewport, console errors, page errors, failed requests and a sanitized trace for every page
+it used.
 
 ## Framework self-tests
 
 `npm run test:framework` needs no Docker or network. It covers:
 
-| Area                                                                   | Spec                                         |
-| ---------------------------------------------------------------------- | -------------------------------------------- |
-| Config precedence, validation, secret settings                         | `config.spec.ts`                             |
-| Deterministic data, replay, parallel independence                      | `test-data.spec.ts`, `fixture-scope.spec.ts` |
-| Fixture scopes and isolation under parallel workers                    | `fixture-scope.spec.ts`                      |
-| LIFO cleanup, `failOnError`, primary failure preserved                 | `teardown.spec.ts`                           |
-| `NEW` / `EXISTING` users and their cleanup (in-process local app)      | `user-fixtures.spec.ts`                      |
-| Response contracts, error causes, no implicit retries, polling         | `api-contract.spec.ts`, `polling.spec.ts`    |
-| Redaction of text, URLs, headers, bodies, objects, errors, attachments | `redaction.spec.ts`, `api-contract.spec.ts`  |
-| Architecture rules                                                     | `architecture.spec.ts`                       |
+| Area                                                                                          | Spec                                         |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Config precedence, validation, secret settings                                                | `config.spec.ts`                             |
+| SSH and database security rules, `known_hosts` pinning                                        | `db-config.spec.ts`                          |
+| Deterministic data, replay, parallel independence                                             | `test-data.spec.ts`, `fixture-scope.spec.ts` |
+| Fixture scopes and isolation under parallel workers                                           | `fixture-scope.spec.ts`                      |
+| LIFO cleanup, `failOnError`, primary failure preserved                                        | `teardown.spec.ts`                           |
+| `NEW` / `EXISTING` users and their cleanup (in-process local app)                             | `user-fixtures.spec.ts`                      |
+| Response contracts, error causes, no implicit retries, polling                                | `api-contract.spec.ts`, `polling.spec.ts`    |
+| Redaction of text, URLs, headers, bodies, objects, errors, attachments, step titles           | `redaction.spec.ts`, `api-contract.spec.ts`  |
+| Independent, sanitized UI failure artifacts (incl. trace)                                     | `ui-artifacts.spec.ts`                       |
+| Browser context isolation under concurrency; page/context closure order                       | `ui-isolation.spec.ts`                       |
+| SSH tunnel: dynamic ports, host and client key checks, shutdown order (in-process SSH server) | `ssh-tunnel.spec.ts`                         |
+| Lazy database open, pool → channels → client shutdown, failure handling                       | `database-lifecycle.spec.ts`                 |
+| Architecture rules                                                                            | `architecture.spec.ts`                       |
 
 Fixture-runtime behavior is checked in a child Playwright run (`tests/framework/scenarios`), so
-scenarios that fail on purpose never fail the outer suite.
+scenarios that fail on purpose never fail the outer suite. Stand isolation across complete Docker
+stands is checked by `npm run stand:concurrency`.

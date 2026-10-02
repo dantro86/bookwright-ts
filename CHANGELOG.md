@@ -54,8 +54,28 @@ All notable changes to this project are documented here. The format follows
   isolation under concurrency.
 - ADR 0007: API-authenticated UI.
 
+- MySQL 8.4 (digest-pinned, no published port, `internal` network) with deterministic schema and
+  seed, and a hardened SSH bastion image (forwarding to `mysql:3306` only, no shell, fresh host
+  key per stand).
+- Launcher generates a per-stand SSH client key, pins the bastion host key with `ssh-keyscan` and
+  deletes all key material on teardown; `stand:concurrency` runs two stands in parallel.
+- `ssh2` tunnel on a dynamic loopback port with `known_hosts` verification; lazy worker-scoped
+  `database` fixture opening tunnel then pool, closing pool, channels, client in order.
+- Typed `bookings` and `rooms` repositories with required/optional lookups and a typed join.
+- Database configuration rules: key auth needs key + `known_hosts`; password auth and unverified
+  host keys only for loopback hosts. Sections can declare cross-field checks.
+- `db` and `integration` projects: seed verification, typed join, write/read/delete over SSH,
+  API → DB → API delete → DB absence, SSH-written row served by API and UI, cascade on user delete.
+- Self-tests: SSH tunnel against an in-process SSH server, database lifecycle and shutdown order,
+  configuration security rules, page/context closure order.
+- ADRs 0008 (SSH security) and 0009 (local integrated system); infrastructure guide.
+
 ### Changed
 
 - Built-in Playwright tracing and screenshots are off. Traces are captured per page and sanitized,
   because built-in traces also recorded raw API request headers.
 - The local app keeps expired sessions, so later requests keep reporting `session_expired`.
+- The launcher runs long steps in the background and forwards `INT`/`TERM`, so a signal tears the
+  stand down immediately instead of after the running command finishes.
+- The local app persists to MySQL on the stand through an async `Store` port; the in-memory store
+  remains for in-process self-tests.

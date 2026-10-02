@@ -35,5 +35,7 @@ export default defineConfig({
     { name: 'framework', testDir: 'tests/framework' },
     { name: 'api', testDir: 'tests/api' },
     { name: 'ui', testDir: 'tests/ui' },
+    { name: 'db', testDir: 'tests/db' },
+    { name: 'integration', testDir: 'tests/integration' },
   ],
 });

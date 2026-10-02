@@ -1,0 +1,18 @@
+# Port forwarding to MySQL only: no shell, no TTY, no agent or X11 forwarding, no other targets.
+Port 2222
+HostKey /etc/ssh/ssh_host_ed25519_key
+PermitRootLogin no
+AllowUsers tunnel
+AuthorizedKeysFile /etc/bookwright/authorized_keys
+PubkeyAuthentication yes
+# Password login exists only for the loopback demo profile (BASTION_PASSWORD set).
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+AllowTcpForwarding local
+PermitOpen mysql:3306
+GatewayPorts no
+AllowAgentForwarding no
+X11Forwarding no
+PermitTTY no
+ForceCommand /bin/false
+LogLevel VERBOSE

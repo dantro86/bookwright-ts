@@ -70,20 +70,20 @@ ADR/README/CHANGELOG updated in the same slice.
 
 ## Phase 4: Infrastructure and database
 
-- [ ] Docker Compose: digest-pinned MySQL, SSH bastion, restful-booker + local app, private
+- [x] Docker Compose: digest-pinned MySQL, SSH bastion, restful-booker + local app, private
       network, health checks, dynamic host ports, MySQL without published port
-- [ ] Deterministic schema and seed data
-- [ ] Lazy SSH tunnel (`ssh2`) with dynamic local port; key + `known_hosts` for non-local,
+- [x] Deterministic schema and seed data
+- [x] Lazy SSH tunnel (`ssh2`) with dynamic local port; key + `known_hosts` for non-local,
       password only for loopback demo
-- [ ] `mysql2/promise` pool after tunnel; deterministic shutdown order (pool → channel → client)
-- [ ] Typed repositories `bookings`, `rooms`: required vs optional lookups, typed join query
-- [ ] DB scenarios: seed verification, join query, write/read/delete through tunnel
-- [ ] Integrated: API create → DB verify via SSH → API cleanup → DB absence
-- [ ] Signal-safe launcher script: unique Compose project, `--wait`, port discovery, exported
+- [x] `mysql2/promise` pool after tunnel; deterministic shutdown order (pool → channel → client)
+- [x] Typed repositories `bookings`, `rooms`: required vs optional lookups, typed join query
+- [x] DB scenarios: seed verification, join query, write/read/delete through tunnel
+- [x] Integrated: API create → DB verify via SSH → API cleanup → DB absence
+- [x] Signal-safe launcher script: unique Compose project, `--wait`, port discovery, exported
       validated config, always tears down (volumes + networks)
-- [ ] Self-tests: closure order for page/context, DB pool, SSH tunnel, worker resources;
+- [x] Self-tests: closure order for page/context, DB pool, SSH tunnel, worker resources;
       concurrent runs with isolated ports/data/users/cleanup
-- [ ] ADRs: SSH security, local integrated system; infrastructure profile guide
+- [x] ADRs: SSH security, local integrated system; infrastructure profile guide
 
 ## Phase 5: Quality system and polish
 

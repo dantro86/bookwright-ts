@@ -18,13 +18,17 @@
     "test:framework": "playwright test --project=framework",
     "test:api": "playwright test --project=api",
     "test:ui": "playwright test --project=ui",
+    "test:db": "playwright test --project=db",
+    "test:integration": "playwright test --project=integration",
     "stand:local": "bash scripts/local-stand.sh",
-    "report": "allure generate allure-results --output allure-report && allure open allure-report"
+    "report": "allure generate allure-results --output allure-report && allure open allure-report",
+    "stand:concurrency": "bash scripts/concurrent-stands.sh"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.63.0",
     "@types/node": "24.19.1",
+    "@types/ssh2": "1.15.6",
     "allure": "3.19.1",
     "allure-js-commons": "3.13.0",
     "allure-playwright": "3.13.0",
@@ -33,11 +37,13 @@
     "fflate": "0.8.3",
     "globals": "17.13.0",
     "prettier": "3.9.9",
+    "ssh2": "1.17.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.0"
   },
   "dependencies": {
     "fastify": "5.12.5",
+    "mysql2": "3.24.5",
     "zod": "4.6.5"
   }
 }

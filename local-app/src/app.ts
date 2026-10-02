@@ -2,7 +2,7 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 import { z } from 'zod';
 import { SESSION_COOKIE, bookingsPage, loginPage } from './pages.ts';
 import { hashPassword, verifyPassword } from './passwords.ts';
-import type { MemoryStore, SessionRecord, UserRecord } from './store.ts';
+import type { SessionRecord, Store, UserRecord } from './store.ts';
 
 export interface SeedUser {
   readonly email: string;
@@ -11,7 +11,7 @@ export interface SeedUser {
 }
 
 export interface AppOptions {
-  readonly store: MemoryStore;
+  readonly store: Store;
   readonly defaultSessionTtlSeconds: number;
   readonly seedUsers?: readonly SeedUser[];
   readonly logger?: boolean;
@@ -82,8 +82,8 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: options.logger ?? false });
 
   for (const seed of options.seedUsers ?? []) {
-    if (store.findUserByEmail(seed.email) === undefined) {
-      store.createUser({
+    if ((await store.findUserByEmail(seed.email)) === undefined) {
+      await store.createUser({
         email: seed.email,
         displayName: seed.displayName,
         passwordHash: await hashPassword(seed.password),
@@ -91,18 +91,18 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     }
   }
 
-  function authenticate(request: FastifyRequest): Authenticated | SessionError {
+  async function authenticate(request: FastifyRequest): Promise<Authenticated | SessionError> {
     const header = request.headers.authorization;
     const token =
       header === undefined
         ? cookieValue(request.headers.cookie, SESSION_COOKIE)
         : /^Bearer (\S+)$/.exec(header)?.[1];
     if (header === undefined && token === undefined) return 'session_missing';
-    const session = token === undefined ? undefined : store.findSession(token);
+    const session = token === undefined ? undefined : await store.findSession(token);
     if (session === undefined) return 'session_invalid';
     // Expired sessions stay recorded so every later request keeps reporting "expired".
     if (session.expiresAt <= Date.now()) return 'session_expired';
-    const user = store.findUser(session.userId);
+    const user = await store.findUser(session.userId);
     return user === undefined ? 'session_invalid' : { user, session };
   }
 
@@ -110,7 +110,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     request: FastifyRequest,
     reply: FastifyReply,
   ): Promise<Authenticated | undefined> {
-    const result = authenticate(request);
+    const result = await authenticate(request);
     if (typeof result === 'string') {
       await sendError(reply, 401, result, 'authentication required');
       return undefined;
@@ -143,44 +143,43 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   app.post('/login', async (request, reply) => {
     const form = z.object({ email: z.string(), password: z.string() }).parse(request.body);
-    const user = store.findUserByEmail(form.email);
+    const user = await store.findUserByEmail(form.email);
     if (user === undefined || !(await verifyPassword(form.password, user.passwordHash))) {
       return reply.redirect('/login?reason=invalid_credentials', 303);
     }
     const ttlSeconds = options.defaultSessionTtlSeconds;
-    const session = store.createSession(user.id, Date.now() + ttlSeconds * 1_000);
+    const session = await store.createSession(user.id, Date.now() + ttlSeconds * 1_000);
     return reply
       .header('set-cookie', sessionCookie(session.token, ttlSeconds))
       .redirect('/bookings', 303);
   });
 
-  app.post('/logout', (request, reply) => {
-    const auth = authenticate(request);
-    if (typeof auth !== 'string') store.deleteSession(auth.session.token);
+  app.post('/logout', async (request, reply) => {
+    const auth = await authenticate(request);
+    if (typeof auth !== 'string') await store.deleteSession(auth.session.token);
     return reply
       .header('set-cookie', sessionCookie('', 0))
       .redirect('/login?reason=signed_out', 303);
   });
 
-  app.get('/bookings', (request, reply) => {
-    const auth = authenticate(request);
+  app.get('/bookings', async (request, reply) => {
+    const auth = await authenticate(request);
     if (typeof auth === 'string') {
       return reply.redirect(`/login?reason=${auth}`, 303);
     }
-    const html = bookingsPage(
-      auth.user,
-      store.listBookings(auth.user.id),
-      (roomId) => store.findRoom(roomId)?.name,
+    const rooms = new Map((await store.listRooms()).map((room) => [room.id, room.name]));
+    const html = bookingsPage(auth.user, await store.listBookings(auth.user.id), (roomId) =>
+      rooms.get(roomId),
     );
     return reply.type('text/html').send(html);
   });
 
   app.post('/api/users', async (request, reply) => {
     const body = Registration.parse(request.body);
-    if (store.findUserByEmail(body.email) !== undefined) {
+    if ((await store.findUserByEmail(body.email)) !== undefined) {
       return sendError(reply, 409, 'email_taken', 'email is already registered');
     }
-    const user = store.createUser({
+    const user = await store.createUser({
       email: body.email,
       displayName: body.displayName,
       passwordHash: await hashPassword(body.password),
@@ -200,18 +199,18 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     if (id !== auth.user.id) {
       return sendError(reply, 403, 'forbidden', 'users can delete only themselves');
     }
-    store.deleteUser(id);
+    await store.deleteUser(id);
     return reply.code(204).send();
   });
 
   app.post('/api/sessions', async (request, reply) => {
     const body = Login.parse(request.body);
-    const user = store.findUserByEmail(body.email);
+    const user = await store.findUserByEmail(body.email);
     if (user === undefined || !(await verifyPassword(body.password, user.passwordHash))) {
       return sendError(reply, 401, 'invalid_credentials', 'email or password is incorrect');
     }
     const ttlSeconds = body.ttlSeconds ?? options.defaultSessionTtlSeconds;
-    const session = store.createSession(user.id, Date.now() + ttlSeconds * 1_000);
+    const session = await store.createSession(user.id, Date.now() + ttlSeconds * 1_000);
     return reply.code(201).send({
       token: session.token,
       userId: user.id,
@@ -229,7 +228,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   app.delete('/api/sessions/current', async (request, reply) => {
     const auth = await requireAuth(request, reply);
     if (!auth) return reply;
-    store.deleteSession(auth.session.token);
+    await store.deleteSession(auth.session.token);
     return reply.code(204).send();
   });
 
@@ -237,22 +236,22 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
     const auth = await requireAuth(request, reply);
     if (!auth) return reply;
     const body = NewBooking.parse(request.body);
-    if (store.findRoom(body.roomId) === undefined) {
+    if ((await store.findRoom(body.roomId)) === undefined) {
       return sendError(reply, 422, 'unknown_room', `room ${body.roomId} does not exist`);
     }
-    return reply.code(201).send(store.createBooking({ ...body, userId: auth.user.id }));
+    return reply.code(201).send(await store.createBooking({ ...body, userId: auth.user.id }));
   });
 
   app.get('/api/bookings', async (request, reply) => {
     const auth = await requireAuth(request, reply);
-    return auth && store.listBookings(auth.user.id);
+    return auth && (await store.listBookings(auth.user.id));
   });
 
   // Another user's booking answers 404, not 403, so ids of foreign bookings are not disclosed.
   app.get('/api/bookings/:id', async (request, reply) => {
     const auth = await requireAuth(request, reply);
     if (!auth) return reply;
-    const booking = store.findBooking(IdParam.parse(request.params).id);
+    const booking = await store.findBooking(IdParam.parse(request.params).id);
     if (booking?.userId !== auth.user.id) {
       return sendError(reply, 404, 'not_found', 'booking not found');
     }
@@ -262,13 +261,15 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   app.delete('/api/bookings/:id', async (request, reply) => {
     const auth = await requireAuth(request, reply);
     if (!auth) return reply;
-    const booking = store.findBooking(IdParam.parse(request.params).id);
+    const booking = await store.findBooking(IdParam.parse(request.params).id);
     if (booking?.userId !== auth.user.id) {
       return sendError(reply, 404, 'not_found', 'booking not found');
     }
-    store.deleteBooking(booking.id);
+    await store.deleteBooking(booking.id);
     return reply.code(204).send();
   });
+
+  app.addHook('onClose', () => store.close());
 
   return app;
 }
