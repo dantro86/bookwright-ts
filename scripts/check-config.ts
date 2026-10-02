@@ -2,10 +2,15 @@
 // Values are never printed. Exit code 1 means at least one section is invalid.
 import { coreSection, ensureRunSeed } from '../framework/config/core.ts';
 import { ConfigValidationError, loadSection, resolveStand } from '../framework/config/section.ts';
+import { localAppSection } from '../framework/api/local/config.ts';
 import { restfulBookerSection } from '../framework/api/restful-booker/config.ts';
 
 ensureRunSeed();
-const checks = [() => loadSection(coreSection), () => loadSection(restfulBookerSection)];
+const checks = [
+  () => loadSection(coreSection),
+  () => loadSection(restfulBookerSection),
+  () => loadSection(localAppSection),
+];
 const failures: string[] = [];
 
 for (const check of checks) {

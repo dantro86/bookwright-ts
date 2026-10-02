@@ -22,5 +22,12 @@
     "allowImportingTsExtensions": true,
     "erasableSyntaxOnly": true
   },
-  "include": ["framework", "tests", "scripts", "playwright.config.ts", "eslint.config.js"]
+  "include": [
+    "framework",
+    "local-app",
+    "tests",
+    "scripts",
+    "playwright.config.ts",
+    "eslint.config.js"
+  ]
 }

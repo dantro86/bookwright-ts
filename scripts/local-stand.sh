@@ -40,10 +40,11 @@ published_port() {
 }
 
 echo "local-stand: starting ${project}" >&2
-compose up --detach --wait --wait-timeout 180 --quiet-pull
+compose up --detach --wait --wait-timeout 180 --quiet-pull --build
 
 export BW_STAND=local
 export BW_RESTFUL_BOOKER_BASE_URL="http://127.0.0.1:$(published_port restful-booker 3001)"
+export BW_LOCAL_APP_BASE_URL="http://127.0.0.1:$(published_port local-app 3000)"
 
 node "${root_dir}/scripts/check-config.ts"
 

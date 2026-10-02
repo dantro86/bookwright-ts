@@ -15,9 +15,9 @@ test.describe('restful-booker bookings', () => {
   test(
     'booking lifecycle: create, read, update, partially update, delete',
     { tag: ['@smoke', '@api'] },
-    async ({ restfulBooker: { bookings }, authSession, testData }) => {
+    async ({ restfulBooker: { bookings }, bookingSteps, authSession, testData }) => {
       const original = bookingRequest(testData);
-      const created = await bookings.create(original);
+      const created = await bookingSteps.create(original);
       expect(created.booking).toEqual(original);
 
       await expect(bookings.requireById(created.bookingid)).resolves.toEqual(original);
@@ -45,15 +45,12 @@ test.describe('restful-booker bookings', () => {
   test(
     'required search returns the single matching booking',
     { tag: ['@regression', '@api'] },
-    async ({ restfulBooker: { bookings }, authSession, testData }) => {
-      const request = bookingRequest(testData);
-      const created = await bookings.create(request);
+    async ({ restfulBooker: { bookings }, existingBooking }) => {
+      const { firstname, lastname } = existingBooking.booking;
 
-      await expect(
-        bookings.requireIdBy({ firstname: request.firstname, lastname: request.lastname }),
-      ).resolves.toBe(created.bookingid);
-
-      await bookings.delete(authSession, created.bookingid);
+      await expect(bookings.requireIdBy({ firstname, lastname })).resolves.toBe(
+        existingBooking.bookingid,
+      );
     },
   );
 
@@ -68,6 +65,17 @@ test.describe('restful-booker bookings', () => {
       expect(failure).toBeInstanceOf(RequiredEntityNotFoundError);
       expect(failure).toMatchObject({ entity: 'booking', source: 'GET /booking', count: 0 });
       expect((failure as Error).message).toContain(query.lastname);
+    },
+  );
+
+  test(
+    'registered cleanup deletes the booking created by a precondition',
+    { tag: ['@regression', '@api'] },
+    async ({ restfulBooker: { bookings }, existingBooking, teardown }) => {
+      expect(teardown.pending()).toEqual([`delete booking ${existingBooking.bookingid}`]);
+      await expect(bookings.requireById(existingBooking.bookingid)).resolves.toEqual(
+        existingBooking.booking,
+      );
     },
   );
 });

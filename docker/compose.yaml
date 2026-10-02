@@ -17,5 +17,20 @@ services:
       retries: 60
       start_period: 5s
 
+  local-app:
+    build:
+      context: ..
+      dockerfile: local-app/Dockerfile
+    environment:
+      PORT: '3000'
+      SESSION_TTL_SECONDS: '3600'
+      # Non-production demo account, documented in README. Mirrors the local-app config defaults.
+      SEED_USER_EMAIL: demo.user@bookwright.test
+      SEED_USER_PASSWORD: demo-password-not-a-secret
+      SEED_USER_NAME: Demo User
+    ports:
+      - '127.0.0.1::3000'
+    networks: [stand]
+
 networks:
   stand: {}

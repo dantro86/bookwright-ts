@@ -2,6 +2,9 @@ import type { APIRequestContext } from '@playwright/test';
 import { test as core } from './core.ts';
 import { AuthClient } from '../api/restful-booker/auth/auth-client.ts';
 import type { AuthSession } from '../api/restful-booker/auth/auth-session.ts';
+import { bookingRequest } from '../api/restful-booker/bookings/booking-data.ts';
+import type { CreatedBooking } from '../api/restful-booker/bookings/booking-schemas.ts';
+import { BookingSteps } from '../api/restful-booker/bookings/booking-steps.ts';
 import { BookingsClient } from '../api/restful-booker/bookings/bookings-client.ts';
 import { loadRestfulBookerConfig, type RestfulBookerConfig } from '../api/restful-booker/config.ts';
 import { HealthClient } from '../api/restful-booker/health/health-client.ts';
@@ -22,6 +25,9 @@ export interface RestfulBookerTestFixtures {
   readonly restfulBooker: RestfulBookerApi;
   /** Precondition: an authenticated restful-booker session for the configured demo user. */
   readonly authSession: AuthSession;
+  readonly bookingSteps: BookingSteps;
+  /** Precondition: a booking created through the API with cleanup registered. */
+  readonly existingBooking: CreatedBooking;
 }
 
 export const test = core.extend<RestfulBookerTestFixtures, RestfulBookerWorkerFixtures>({
@@ -60,5 +66,13 @@ export const test = core.extend<RestfulBookerTestFixtures, RestfulBookerWorkerFi
       password: restfulBookerConfig.password,
     });
     await use(session);
+  },
+
+  bookingSteps: async ({ restfulBooker, authSession, teardown }, use) => {
+    await use(new BookingSteps(restfulBooker.bookings, authSession, teardown));
+  },
+
+  existingBooking: async ({ bookingSteps, testData }, use) => {
+    await use(await bookingSteps.create(bookingRequest(testData)));
   },
 });

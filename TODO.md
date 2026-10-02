@@ -36,22 +36,24 @@ ADR/README/CHANGELOG updated in the same slice.
 
 ## Phase 2: Fixture runtime and lifecycle
 
-- [ ] Compose one typed `test` export from focused fixture modules (no central registry)
-- [ ] Worker-scoped: config, safe request contexts, lazy infra handles
-- [ ] Test-scoped: teardown, test data, steps, scenario fixtures
-- [ ] LIFO teardown fixture: named Allure steps, `teardown.failOnError`, primary failure preserved,
+- [x] Compose one typed `test` export from focused fixture modules (no central registry)
+- [x] Worker-scoped: config, safe request contexts (lazy infra handles arrive with SSH/MySQL in
+      Phase 4)
+- [x] Test-scoped: teardown, test data, steps, scenario fixtures
+- [x] LIFO teardown fixture: named Allure steps, `teardown.failOnError`, primary failure preserved,
       cause chains with safe context
-- [ ] Domain preconditions: `authSession`, `existingBooking`
-- [ ] Local TypeScript booking app (Fastify): auth, users, sessions, bookings
-- [ ] Local API clients: `auth`, `users`, `bookings`
-- [ ] `NEW` / `EXISTING` user fixtures (`newUser`, `existingUser`) returning one `TestUser` contract
-- [ ] Mock HTTP server for disconnect, timeout, malformed JSON, status mismatch,
+- [x] Domain preconditions: `authSession`, `existingBooking`
+- [x] Local TypeScript booking app (Fastify): auth, users, sessions, bookings (in-memory store;
+      MySQL persistence in Phase 4)
+- [x] Local API clients: `auth`, `users`, `bookings`
+- [x] `NEW` / `EXISTING` user fixtures (`newUser`, `existingUser`) returning one `TestUser` contract
+- [x] Mock HTTP server for disconnect, timeout, malformed JSON, status mismatch,
       eventual-consistency sequences
-- [ ] Self-tests: config precedence, data replay, fixture scope/isolation, NEW/EXISTING users,
+- [x] Self-tests: config precedence, data replay, fixture scope/isolation, NEW/EXISTING users,
       LIFO + failOnError, no implicit retries, polling + terminal states, redaction
-- [ ] Architecture rule tests: no catch-all clients/steps, no scenario literals in steps,
+- [x] Architecture rule tests: no catch-all clients/steps, no scenario literals in steps,
       no central fixture catalog
-- [ ] ADRs: cleanup ownership, retry policy, safe reporting
+- [x] ADRs: cleanup ownership, retry policy, safe reporting
 
 ## Phase 3: UI
 

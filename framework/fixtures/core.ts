@@ -5,6 +5,7 @@ import {
   recordReplayMetadata,
   type ReportLabels,
 } from '../reporting/report-labels.ts';
+import { Teardown, teardownVerdict } from '../teardown/teardown.ts';
 import { TestData } from '../test-data/test-data.ts';
 
 export interface CoreOptions {
@@ -14,6 +15,8 @@ export interface CoreOptions {
 
 export interface CoreTestFixtures {
   readonly testData: TestData;
+  /** LIFO cleanup queue; register cleanup right after creating state. */
+  readonly teardown: Teardown;
   readonly reportLabelsApplied: undefined;
 }
 
@@ -36,6 +39,27 @@ export const test = base.extend<CoreOptions & CoreTestFixtures, CoreWorkerFixtur
     const testData = TestData.forTest(coreConfig.runSeed, testInfo, testInfo.config.rootDir);
     await recordReplayMetadata(testData);
     await use(testData);
+  },
+
+  teardown: async ({ coreConfig }, use, testInfo) => {
+    const teardown = new Teardown();
+    await use(teardown);
+
+    const failures = await teardown.runAll((name, body) => base.step(name, body));
+    const verdict = teardownVerdict(failures, {
+      testFailed: testInfo.status !== testInfo.expectedStatus,
+      failOnError: coreConfig.teardownFailOnError,
+    });
+    if (verdict.kind === 'clean') {
+      return;
+    }
+    if (verdict.kind === 'fail') {
+      throw verdict.error;
+    }
+    // Reported, not thrown: a primary failure stays primary, and policy may allow dirty cleanup.
+    const summary = verdict.failures.map((failure) => failure.message).join('\n');
+    testInfo.annotations.push({ type: 'cleanup-failure', description: summary });
+    await testInfo.attach('cleanup failures', { body: summary, contentType: 'text/plain' });
   },
 
   reportLabelsApplied: [

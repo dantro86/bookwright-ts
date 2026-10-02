@@ -15,6 +15,8 @@ export interface ApiCall {
   readonly params?: QueryParams;
   readonly headers?: Readonly<Record<string, string>>;
   readonly data?: unknown;
+  /** Per-request timeout; defaults to Playwright's request timeout. */
+  readonly timeoutMs?: number;
 }
 
 /** Executes the call once and returns the response regardless of status. */
@@ -105,6 +107,7 @@ async function send(call: ApiCall): Promise<APIResponse> {
       ...(call.params && { params: { ...call.params } }),
       ...(call.headers && { headers: { ...call.headers } }),
       ...(call.data !== undefined && { data: call.data }),
+      ...(call.timeoutMs !== undefined && { timeout: call.timeoutMs }),
       failOnStatusCode: false,
       // Every call executes exactly once; waiting happens only at explicit polling boundaries.
       maxRetries: 0,
