@@ -35,14 +35,14 @@
     "allure-js-commons": "3.13.0",
     "allure-playwright": "3.13.0",
     "c8": "12.0.0",
-    "eslint": "10.11.0",
+    "eslint": "10.12.0",
     "eslint-config-prettier": "10.1.8",
     "fflate": "0.8.3",
     "globals": "17.13.0",
     "prettier": "3.9.9",
     "ssh2": "1.17.0",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.71.0"
+    "typescript-eslint": "8.71.1"
   },
   "dependencies": {
     "fastify": "5.12.5",
