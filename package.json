@@ -47,6 +47,6 @@
   "dependencies": {
     "fastify": "5.12.5",
     "mysql2": "3.24.5",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   }
 }
