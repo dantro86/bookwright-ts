@@ -6,7 +6,7 @@
 services:
   restful-booker:
     # Published image is linux/amd64 only; Apple Silicon runs it under emulation.
-    image: mwinteringham/restfulbooker@sha256:e4a04233731ceca2e6d99bca16689e0d4bc44631047ab351b6f11b5fa08fb418
+    image: mwinteringham/restfulbooker@sha256:a87ae093264caf64cad2557256921cbdb1fec466d6356b5e140e3f060b904f04
     platform: linux/amd64
     ports:
       # Loopback only, dynamic host port: parallel stands never collide.
